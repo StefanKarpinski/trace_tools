@@ -53,6 +53,7 @@ Author: Stefan Karpinski <stefan.karpinski@gmail.com>
 char *flows_dir = "flows";
 u_int32_t max_files = 1000;
 double cleanup_factor = 1.00;
+u_int32_t split_ips = 0;
 
 // error handling
 
@@ -141,6 +142,10 @@ char *flow_path(flow_key_t *key) {
   x += snprintf(path+x,sizeof(path)-x,"%u_%u_%u",
     key->proto,key->src_port,key->dst_port
   );
+  if (split_ips) {
+    char *c;
+    while (c = strchr(path,'.')) *c = '/';
+  }
   return path;
 }
 
@@ -220,7 +225,7 @@ int main(int argc, char **argv) {
   int i;
   int files=0;
   char *filter = NULL;
-  while ((i = getopt(argc,argv,"d:m:c:f:")) != -1) {
+  while ((i = getopt(argc,argv,"d:m:c:f:s")) != -1) {
     switch (i) {
       case 'd':
         flows_dir = optarg;
@@ -233,6 +238,9 @@ int main(int argc, char **argv) {
         break;
       case 'f':
         filter = optarg;
+        break;
+      case 's':
+        split_ips = 1;
         break;
       case '?':
         if (isprint(optopt))
