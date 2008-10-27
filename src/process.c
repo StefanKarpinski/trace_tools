@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <math.h>
 #include <pcap.h>
 #include <glib.h>
 
@@ -178,6 +179,7 @@ void file_cloexec(FILE *file) {
 
 #define OUTPUT_TAB 0
 #define OUTPUT_CSV 1
+#define OUTPUT_BIN 2
 
 // main processing loop
 
@@ -192,16 +194,18 @@ int main(int argc, char ** argv) {
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"f:i:PITAtcp:m:")) != -1) {
+  while ((i = getopt(argc,argv,"f:i:m:PITAtcb")) != -1) {
     switch (i) {
       case 'f':
         filter = optarg;
         break;
-
       case 'i':
         flow_id = atoi(optarg);
         break;
-      
+      case 'm':
+        map_file = optarg;
+        break;
+
       case 'P':
         size_type = SIZE_PACKET;
         break;
@@ -221,9 +225,8 @@ int main(int argc, char ** argv) {
       case 'c':
         output = OUTPUT_CSV;
         break;
-
-      case 'm':
-        map_file = optarg;
+      case 'b':
+        output = OUTPUT_BIN;
         break;
 
       case '?':
@@ -309,19 +312,31 @@ int main(int argc, char ** argv) {
           flow->last_seqno = 0;
           g_hash_table_insert(flows,copy(key),flow);
           if (map) {
-            char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
-            inet_ntop(AF_INET,&key.src_ip,src,sizeof(src));
-            inet_ntop(AF_INET,&key.dst_ip,dst,sizeof(dst));
-            char *format =
-              output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\n" :
-              output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u\n" : NULL;
-            fprintf(map,format,
-              flow->id, key.proto, src, dst, key.src_port, key.dst_port
-            );
+            if (output != OUTPUT_BIN) {
+              char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
+              inet_ntop(AF_INET,&key.src_ip,src,sizeof(src));
+              inet_ntop(AF_INET,&key.dst_ip,dst,sizeof(dst));
+              char *format =
+                output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\n" :
+                output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u\n" : NULL;
+              fprintf(map,format,
+                flow->id, key.proto, src, dst, key.src_port, key.dst_port
+              );
+            } else {
+              char data[17];
+              *((u_int32_t *) (data +  0)) = htonl(flow->id);
+              *((u_int8_t  *) (data +  4)) = key.proto;
+              *((u_int32_t *) (data +  5)) = key.src_ip;
+              *((u_int32_t *) (data +  9)) = key.dst_ip;
+              *((u_int16_t *) (data + 13)) = htons(key.src_port);
+              *((u_int16_t *) (data + 15)) = htons(key.dst_port);
+              if (fwrite(data,sizeof(data),1,map) != 1)
+                die("fwrite: %u\n",errno);
+            }
           }
         }
 
-        u_int32_t size;
+        u_int16_t size;
         switch (size_type) {
           case SIZE_PACKET:
             size = IP4_SIZE(ip);
@@ -379,6 +394,17 @@ int main(int argc, char ** argv) {
             else snprintf(buf,sizeof(buf),"%.6f",ival);
             printf("%u,%.6f,%s,%u\n", flow->id, time, buf, size);
             break;
+          }
+          case OUTPUT_BIN: {
+            char data[18];
+            u_int32_t ival_u32 = (ival == INFINITY) ? 0xffff : round(ival*1e6);
+            *((u_int32_t *) (data +  0)) = htonl(flow->id);
+            *((u_int32_t *) (data +  4)) = htonl(info.ts.tv_sec);
+            *((u_int32_t *) (data +  8)) = htonl(info.ts.tv_usec);
+            *((u_int32_t *) (data + 12)) = htonl(ival_u32);
+            *((u_int16_t *) (data + 16)) = htons(size);
+            if (fwrite(data,sizeof(data),1,stdout) != 1)
+              die("fwrite: %u\n",errno);
           }
         }
         flow->last_time = time;

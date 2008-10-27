@@ -10,7 +10,7 @@ INCLUDES = -Ihdr \
 	-I$(USR)/include/glib-2.0/glib \
 	-I$(USR)/lib/glib-2.0/include
 LIBSDIR = -L$(USR)/lib
-LIBS = -lglib-2.0 -lpcap
+LIBS = -lglib-2.0 -lpcap -lm
 
 bin/%: src/%.c
 	gcc $(OPTS) $(INCLUDES) $(LIBSDIR) $< -o $@ $(LIBS)
