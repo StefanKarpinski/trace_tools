@@ -1,64 +1,6 @@
-#include <netinet/in.h>
-#include <assert.h>
-#include <string.h>
-#include <stdarg.h>
-#include <stdlib.h>
-#include <getopt.h>
-#include <stdio.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <math.h>
-#include <pcap.h>
-#include <glib.h>
-
-#include "ether.h"
-#include "ip.h"
-#include "udp.h"
-#include "tcp.h"
-
-#define ETHERTYPE_IP   0x0008
-#define ETHERTYPE_ARP  0x0608
-#define ETHERTYPE_RARP 0x3508
-
-#define IP_PROTO_ICMP  1
-#define IP_PROTO_TCP   6
-#define IP_PROTO_UDP  17
-
-#define TCP_MAX_SKIP ((1<<16)-1)
-
-#define INFINITY (1.0/0.0)
-
-#define MAX_IP_LENGTH 15
-
-#define DEBUG fprintf(stderr,"LINE %u\n",__LINE__);
-
-#define errstr strerror(errno)
-#define g_hash_table_exists(h,x) g_hash_table_lookup_extended(h,x,NULL,NULL)
-
-// error handling
-
-int warn(const char * fmt, ...) {
-  va_list args;
-  va_start(args,fmt);
-  vfprintf(stderr,fmt,args);
-  va_end(args);
-}
-
-int die(const char * fmt, ...) {
-  va_list args;
-  va_start(args,fmt);
-  vfprintf(stderr,fmt,args);
-  va_end(args);
-  exit(1);
-}
-
-#define warn(fmt,...) warn("%u: " fmt,__LINE__,__VA_ARGS__)
-#define  die(fmt,...)  die("%u: " fmt,__LINE__,__VA_ARGS__)
+#include "common.h"
 
 // flow data structures
-
-#define SIZE_BINS 1500
-#define IVAL_BINS 1500
 
 typedef struct {
   u_int8_t  proto;
@@ -95,42 +37,6 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
     x->src_port  == y->src_port &&
     x->dst_ip    == y->dst_ip   &&
     x->dst_port  == y->dst_port ;
-}
-
-// return the suffix of a file name
-
-char *suffix(char *file, char sep) {
-  char *suf = rindex(file,sep);
-  return suf ? suf : "";
-}
-
-// fork a process and read its output via returned file descriptor
-
-FILE *cmd_read(const char *arg, ...) {
-  int fd[2],pid;
-  if (pipe(fd)) die("pipe: %s\n",errstr);
-  if (pid = fork()) {
-    FILE *rf;
-    if (close(fd[1])) die("close(%u): %s\n",fd[1],errstr);
-    if (!(rf = fdopen(fd[0],"r"))) die("fdopen: %s\n",errstr);
-    return rf;
-  }
-  if (pid < 0) die("fork(): %s\n",errstr);
-  if (close(0)) die("close(0): %s\n",errstr);
-  if (close(fd[0])) die("close(%u): %s\n",fd[0],errstr);
-  if (dup2(fd[1],1) < 0) die("dup2(%u,1): %s\n",fd[1],errstr);
-  execvp(arg,&arg);
-  die("exec(%s,...): %s\n",arg,errstr);
-}
-
-// set the FD_CLOEXEC flag on a file descriptor
-
-void file_cloexec(FILE *file) {
-  int x,fd = fileno(file);
-  x = fcntl(fd,F_GETFD,0);
-  if (x < 0) die("fcntl(%u,F_GETFD,0): %s",fd,errstr);
-  x = fcntl(fd,F_SETFD,x|FD_CLOEXEC);
-  if (x < 0) die("fcntl(%u,F_GETFD,%u): %s",fd,x|FD_CLOEXEC,errstr);
 }
 
 // macros for parsing packet data

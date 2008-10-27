@@ -1,5 +1,5 @@
 USR = $(HOME)/usr
-PROGS = bin/process bin/parse bin/split bin/trace
+PROGS = bin/process
 
 default: $(PROGS)
 
@@ -12,10 +12,15 @@ INCLUDES = -Ihdr \
 LIBSDIR = -L$(USR)/lib
 LIBS = -lglib-2.0 -lpcap -lm
 
-bin/%: src/%.c
-	gcc $(OPTS) $(INCLUDES) $(LIBSDIR) $< -o $@ $(LIBS)
+src/%.o: src/%.c src/common.h
+	gcc $(OPTS) $(INCLUDES) -c $< -o $@
+
+bin/%: src/%.o src/common.o
+	gcc $(OPTS) $(INCLUDES) $^ -o $@ $(LIBSDIR) $(LIBS)
 
 clean:
-	rm -f $(PROGS)
+	rm -f $(PROGS) src/*.o
+
+.PRECIOUS: src/%.o
 
 .PHONY: default clean
