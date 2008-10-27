@@ -35,13 +35,13 @@
 #define errstr strerror(errno)
 #define g_hash_table_exists(h,x) g_hash_table_lookup_extended(h,x,NULL,NULL)
 
+#define FLOW_RECORD_SIZE 17
+#define PACKET_RECORD_SIZE 18
+
 // error handling
 
 int warn(const char * fmt, ...);
 int  die(const char * fmt, ...);
-
-// #define warn(fmt,...) warn("%u: " fmt,__LINE__,__VA_ARGS__)
-// #define  die(fmt,...)  die("%u: " fmt,__LINE__,__VA_ARGS__)
 
 // other utility functions
 

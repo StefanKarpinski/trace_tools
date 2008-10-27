@@ -229,7 +229,7 @@ int main(int argc, char ** argv) {
                 flow->id, key.proto, src, dst, key.src_port, key.dst_port
               );
             } else {
-              char data[17];
+              char data[FLOW_RECORD_SIZE];
               *((u_int32_t *) (data +  0)) = htonl(flow->id);
               *((u_int8_t  *) (data +  4)) = key.proto;
               *((u_int32_t *) (data +  5)) = key.src_ip;
@@ -302,7 +302,7 @@ int main(int argc, char ** argv) {
             break;
           }
           case OUTPUT_BIN: {
-            char data[18];
+            char data[PACKET_RECORD_SIZE];
             u_int32_t ival_u32 = (ival == INFINITY) ? 0xffff : round(ival*1e6);
             *((u_int32_t *) (data +  0)) = htonl(flow->id);
             *((u_int32_t *) (data +  4)) = htonl(info.ts.tv_sec);
