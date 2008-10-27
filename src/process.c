@@ -27,6 +27,8 @@
 
 #define INFINITY (1.0/0.0)
 
+#define MAX_IP_LENGTH 15
+
 #define DEBUG fprintf(stderr,"LINE %u\n",__LINE__);
 
 #define errstr strerror(errno)
@@ -60,8 +62,8 @@ int die(const char * fmt, ...) {
 typedef struct {
   u_int8_t  proto;
   u_int32_t src_ip;
-  u_int16_t src_port;
   u_int32_t dst_ip;
+  u_int16_t src_port;
   u_int16_t dst_port;
 } flow_key_t;
 
@@ -87,11 +89,11 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
   flow_key_t *x = (flow_key_t *) a;
   flow_key_t *y = (flow_key_t *) b;
   return
-    x->proto    == y->proto    &&
-    x->src_ip   == y->src_ip   &&
-    x->src_port == y->src_port &&
-    x->dst_ip   == y->dst_ip   &&
-    x->dst_port == y->dst_port ;
+    x->proto     == y->proto    &&
+    x->src_ip    == y->src_ip   &&
+    x->src_port  == y->src_port &&
+    x->dst_ip    == y->dst_ip   &&
+    x->dst_port  == y->dst_port ;
 }
 
 // return the suffix of a file name
@@ -139,12 +141,19 @@ void file_cloexec(FILE *file) {
 
 #define IP4_SIZE(ip) ntohs(ip->ip_len)
 #define HAS_PORT(ip) (ip->ip_p==IP_PROTO_TCP||ip->ip_p==IP_PROTO_UDP)
-#define SRC_PORT(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip))))
+#define SRC_PORT(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0)))
 #define DST_PORT(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+2)))
 #define UDP_SIZE(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
 #define UDP_CKSM(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+6)))
 #define TCP_SQNO(ip) ntohl(*((u_int32_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
 #define TCP_AKNO(ip) ntohl(*((u_int32_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+8)))
+
+#define ICMP_TYPE(ip) (*(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0))
+#define ICMP_CODE(ip) (*(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+1))
+#define ICMP_TYCO(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0)))
+#define ICMP_CKSM(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+2)))
+#define ICMP_IDNO(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
+#define ICMP_SQNO(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+6)))
 
 #define TCP_URG(tcp) (tcp->th_flags & TH_URG)
 #define TCP_ACK(tcp) (tcp->th_flags & TH_ACK)
@@ -179,10 +188,11 @@ int main(int argc, char ** argv) {
   u_int32_t flow_id = 1;
   u_int8_t size_type = SIZE_PACKET;
   u_int8_t output = OUTPUT_TAB;
+  char *map_file = NULL;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"f:i:PITAtcp:")) != -1) {
+  while ((i = getopt(argc,argv,"f:i:PITAtcp:m:")) != -1) {
     switch (i) {
       case 'f':
         filter = optarg;
@@ -212,6 +222,10 @@ int main(int argc, char ** argv) {
         output = OUTPUT_CSV;
         break;
 
+      case 'm':
+        map_file = optarg;
+        break;
+
       case '?':
         if (isprint(optopt))
           fprintf(stderr,"Unknown option `-%c'.\n",optopt);
@@ -220,6 +234,15 @@ int main(int argc, char ** argv) {
       default:
         return 1;
     }
+  }
+  
+  // open map file for writing if requested
+  
+  FILE *map = NULL;
+  if (map_file) {
+    if (!(map = fopen(map_file,"w")))
+        die("fopen(\"%s\",\"r\"): %s\n",map_file,errstr);
+    file_cloexec(map);
   }
 
   // process each argument as a trace file
@@ -274,8 +297,8 @@ int main(int argc, char ** argv) {
           key.src_port = SRC_PORT(ip);
           key.dst_port = DST_PORT(ip);
         } else {
-          key.src_port = 0;
-          key.dst_port = 0;
+          key.src_port = ICMP_IDNO(ip);
+          key.dst_port = ICMP_TYCO(ip);
         }
 
         flow_data_t *flow;
@@ -285,7 +308,17 @@ int main(int argc, char ** argv) {
           flow->last_time = -INFINITY;
           flow->last_seqno = 0;
           g_hash_table_insert(flows,copy(key),flow);
-          // TODO: record flow id & metadata here...
+          if (map) {
+            char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
+            inet_ntop(AF_INET,&key.src_ip,src,sizeof(src));
+            inet_ntop(AF_INET,&key.dst_ip,dst,sizeof(dst));
+            char *format =
+              output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\n" :
+              output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u\n" : NULL;
+            fprintf(map,format,
+              flow->id, key.proto, src, dst, key.src_port, key.dst_port
+            );
+          }
         }
 
         u_int32_t size;
