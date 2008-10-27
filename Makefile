@@ -1,5 +1,5 @@
 USR = $(HOME)/usr
-PROGS = bin/parse bin/split bin/trace
+PROGS = bin/process bin/parse bin/split bin/trace
 
 default: $(PROGS)
 
