@@ -102,14 +102,15 @@ int main(int argc, char ** argv) {
   char *filter       = NULL;
   char *map_file     = NULL;
   u_int32_t flow_id  = 1;
+  u_int16_t min_size = 0;
+  double    max_ival = INFINITY;
   u_int8_t size_type = SIZE_PACKET;
   u_int8_t output    = OUTPUT_TAB;
   u_int8_t neg_ival  = NEG_IVAL_KEEP;
-  double max_ival    = INFINITY;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"F:i:f:M:PITAtcbdkaz")) != -1) {
+  while ((i = getopt(argc,argv,"F:i:f:m:M:PITAtcbdkaz")) != -1) {
     switch (i) {
       case 'F':
         filter = optarg;
@@ -122,6 +123,9 @@ int main(int argc, char ** argv) {
         break;
       case 'M':
         max_ival = atof(optarg);
+        break;
+      case 'm':
+        min_size = atoi(optarg);
         break;
 
       case 'P':
@@ -325,6 +329,8 @@ int main(int argc, char ** argv) {
             }
             break;
         }
+        if (size < min_size)
+          continue; // ignore packet
 
         switch (output) {
           case OUTPUT_TAB:
