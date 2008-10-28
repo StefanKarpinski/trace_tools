@@ -74,6 +74,7 @@ int main(int argc, char ** argv) {
         // TODO: detect trailing partial record.
         if (ferror(file))
           die("fread: %u\n",errno);
+        fclose(file);
       }
       break;
     }
@@ -104,6 +105,7 @@ int main(int argc, char ** argv) {
         // TODO: detect trailing partial record.
         if (ferror(file))
           die("fread: %u\n",errno);
+        fclose(file);
       }
       break;
   }
