@@ -105,19 +105,23 @@ int main(int argc, char ** argv) {
   u_int8_t size_type = SIZE_PACKET;
   u_int8_t output    = OUTPUT_TAB;
   u_int8_t neg_ival  = NEG_IVAL_KEEP;
+  double max_ival    = INFINITY;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"f:i:m:PITAtcbdkaz")) != -1) {
+  while ((i = getopt(argc,argv,"F:i:f:M:PITAtcbdkaz")) != -1) {
     switch (i) {
-      case 'f':
+      case 'F':
         filter = optarg;
         break;
       case 'i':
         flow_id = atoi(optarg);
         break;
-      case 'm':
+      case 'f':
         map_file = optarg;
+        break;
+      case 'M':
+        max_ival = atof(optarg);
         break;
 
       case 'P':
@@ -165,6 +169,8 @@ int main(int argc, char ** argv) {
         return 1;
     }
   }
+  if (max_ival <= 0)
+    die("Maximum interval must be positive: %f\n",max_ival);
   
   // open map file for writing if requested
   
@@ -222,13 +228,19 @@ int main(int argc, char ** argv) {
           key.dst_port = ICMP_TYCO(ip);
         }
 
-        flow_data_t *flow;
-        if (!(flow = g_hash_table_lookup(flows,&key))) {
-          flow = allocate(flow);
+        flow_data_t *flow = g_hash_table_lookup(flows,&key);
+        double ival = flow ? time - flow->last_time : INFINITY;
+
+        if (ival > max_ival) {
+          if (!flow) flow = allocate(flow);
           flow->id = flow_id++;
           flow->last_time = -INFINITY;
           flow->last_seqno = 0;
-          g_hash_table_insert(flows,copy(key),flow);
+          if (ival == INFINITY)
+            g_hash_table_insert(flows,copy(key),flow);
+          else
+            ival = INFINITY;
+
           if (map) {
             if (output != OUTPUT_BIN) {
               char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
@@ -252,10 +264,7 @@ int main(int argc, char ** argv) {
                 die("fwrite: %u\n",errno);
             }
           }
-        }
-
-        double ival = time - flow->last_time;
-        if (ival < 0) {
+        } else if (ival < 0) {
           switch (neg_ival) {
             case NEG_IVAL_DISCARD:
               continue; // discard packet
