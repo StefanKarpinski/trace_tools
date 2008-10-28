@@ -1,5 +1,5 @@
 USR = $(HOME)/usr
-PROGS = bin/process
+PROGS = bin/process bin/unpack
 
 default: $(PROGS)
 

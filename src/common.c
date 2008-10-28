@@ -19,7 +19,7 @@ int die(const char * fmt, ...) {
 
 // return the suffix of a file name
 
-char *suffix(char *file, char sep) {
+static char *suffix(const char *file, const char sep) {
   char *suf = rindex(file,sep);
   return suf ? suf : "";
 }
@@ -43,13 +43,25 @@ FILE *cmd_read(const char *arg, ...) {
   die("exec(%s,...): %s\n",arg,errstr);
 }
 
-// set the FD_CLOEXEC flag on a file descriptor
-
 void file_cloexec(FILE *file) {
   int x,fd = fileno(file);
   x = fcntl(fd,F_GETFD,0);
   if (x < 0) die("fcntl(%u,F_GETFD,0): %s",fd,errstr);
   x = fcntl(fd,F_SETFD,x|FD_CLOEXEC);
   if (x < 0) die("fcntl(%u,F_GETFD,%u): %s",fd,x|FD_CLOEXEC,errstr);
+}
+
+FILE *open_arg(const char *arg) {
+  FILE *file;
+  if (0 == strcmp(suffix(arg,'.'),".gz")) {
+      file = cmd_read("zcat","-f",arg,NULL);
+  } else if (0 == strcmp(suffix(arg,'.'),".bz2")) {
+      file = cmd_read("bzcat","-f",arg,NULL);
+  } else {
+      if (!(file = fopen(arg,"r")))
+          die("fopen(\"%s\",\"r\"): %s\n",arg,errstr);
+      file_cloexec(file);
+  }
+  return file;
 }
 

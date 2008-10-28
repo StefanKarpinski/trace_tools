@@ -87,20 +87,28 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
 #define OUTPUT_CSV 1
 #define OUTPUT_BIN 2
 
+// possible actions for negative intervals
+
+#define NEG_IVAL_DISCARD  0
+#define NEG_IVAL_KEEP     1
+#define NEG_IVAL_ABSOLUTE 2
+#define NEG_IVAL_ZERO     3
+
 // main processing loop
 
 int main(int argc, char ** argv) {
 
   // option variables
-  char *filter = NULL;
-  u_int32_t flow_id = 1;
+  char *filter       = NULL;
+  char *map_file     = NULL;
+  u_int32_t flow_id  = 1;
   u_int8_t size_type = SIZE_PACKET;
-  u_int8_t output = OUTPUT_TAB;
-  char *map_file = NULL;
+  u_int8_t output    = OUTPUT_TAB;
+  u_int8_t neg_ival  = NEG_IVAL_KEEP;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"f:i:m:PITAtcb")) != -1) {
+  while ((i = getopt(argc,argv,"f:i:m:PITAtcbdkaz")) != -1) {
     switch (i) {
       case 'f':
         filter = optarg;
@@ -135,6 +143,19 @@ int main(int argc, char ** argv) {
         output = OUTPUT_BIN;
         break;
 
+      case 'd':
+        neg_ival = NEG_IVAL_DISCARD;
+        break;
+      case 'k':
+        neg_ival = NEG_IVAL_KEEP;
+        break;
+      case 'a':
+        neg_ival = NEG_IVAL_ABSOLUTE;
+        break;
+      case 'z':
+        neg_ival = NEG_IVAL_ZERO;
+        break;
+
       case '?':
         if (isprint(optopt))
           fprintf(stderr,"Unknown option `-%c'.\n",optopt);
@@ -160,16 +181,7 @@ int main(int argc, char ** argv) {
 
   for (i = optind; i < argc; i++) {
     fprintf(stderr,"processing %s...\n",argv[i]);
-    FILE *file;
-    if (0 == strcmp(suffix(argv[i],'.'),".gz")) {
-        file = cmd_read("zcat","-f",argv[i],NULL);
-    } else if (0 == strcmp(suffix(argv[i],'.'),".bz2")) {
-        file = cmd_read("bzcat","-f",argv[i],NULL);
-    } else {
-        if (!(file = fopen(argv[i],"r")))
-            die("fopen(\"%s\",\"r\"): %s\n",argv[i],errstr);
-        file_cloexec(file);
-    }
+    FILE *file = open_arg(argv[i]);
 
     char error[PCAP_ERRBUF_SIZE];
     pcap_t *pcap = pcap_fopen_offline(file,error);
@@ -242,6 +254,22 @@ int main(int argc, char ** argv) {
           }
         }
 
+        double ival = time - flow->last_time;
+        if (ival < 0) {
+          switch (neg_ival) {
+            case NEG_IVAL_DISCARD:
+              continue; // discard packet
+            case NEG_IVAL_KEEP:
+              break; // record it as-is
+            case NEG_IVAL_ABSOLUTE:
+              ival = fabs(ival);
+              break;
+            case NEG_IVAL_ZERO:
+              ival = 0.0;
+              break;
+          }
+        }
+
         u_int16_t size;
         switch (size_type) {
           case SIZE_PACKET:
@@ -289,7 +317,6 @@ int main(int argc, char ** argv) {
             break;
         }
 
-        double ival = time - flow->last_time;
         switch (output) {
           case OUTPUT_TAB:
             printf("%u\t%18.6f\t%10.6f\t%u\n", flow->id, time, ival, size);
@@ -303,21 +330,22 @@ int main(int argc, char ** argv) {
           }
           case OUTPUT_BIN: {
             char data[PACKET_RECORD_SIZE];
-            u_int32_t ival_u32 = (ival == INFINITY) ? 0xffff : round(ival*1e6);
             *((u_int32_t *) (data +  0)) = htonl(flow->id);
             *((u_int32_t *) (data +  4)) = htonl(info.ts.tv_sec);
             *((u_int32_t *) (data +  8)) = htonl(info.ts.tv_usec);
-            *((u_int32_t *) (data + 12)) = htonl(ival_u32);
-            *((u_int16_t *) (data + 16)) = htons(size);
+            *((double *)    (data + 12)) = ival;
+            *((u_int16_t *) (data + 20)) = htons(size);
             if (fwrite(data,sizeof(data),1,stdout) != 1)
               die("fwrite: %u\n",errno);
           }
         }
+
         flow->last_time = time;
       }
     } else {
         die("pcap: %s\n",error);
     }
+    fclose(file);
   }
   return 0;
 }

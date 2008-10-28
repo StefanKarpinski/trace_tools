@@ -36,7 +36,7 @@
 #define g_hash_table_exists(h,x) g_hash_table_lookup_extended(h,x,NULL,NULL)
 
 #define FLOW_RECORD_SIZE 17
-#define PACKET_RECORD_SIZE 18
+#define PACKET_RECORD_SIZE 22
 
 // error handling
 
@@ -45,7 +45,6 @@ int  die(const char * fmt, ...);
 
 // other utility functions
 
-char *suffix(char *file, char sep);
-FILE *cmd_read(const char *arg, ...);
 void file_cloexec(FILE *file);
-
+FILE *cmd_read(const char *arg, ...);
+FILE *open_arg(const char *arg);
