@@ -1,0 +1,37 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+no strict q[subs];
+
+our $input_type;
+our $split_re = qr/\s+/;
+
+use Getopt::Long;
+GetOptions
+  '-f' => sub { $input_type = 'f' },
+  '-p' => sub { $input_type = 'p' },
+  '-t' => sub { $split_re = qr/\s+/ },
+  '-c' => sub { $split_re = qr/,/   }
+or exit(1);
+
+$input_type or
+  die("Please speficy input type: -f for flows or -p for packets.\n");
+
+use Socket q[inet_aton];
+
+if ($input_type eq 'f') {
+  while (<>) {
+    my ($flow,$proto,$src,$dst,$sport,$dport) = split $split_re;
+    $src = inet_aton $src;
+    $dst = inet_aton $dst;
+    print(pack('Nca4a4nn',$flow,$proto,$src,$dst,$sport,$dport));
+  }
+} elsif ($input_type eq 'p') {
+  while (<>) {
+    my ($flow,$time,$ival,$size) = split $split_re;
+    my $sec  = int($time);
+    my $usec = int(($time-$sec)*1e6);
+    print(pack('NNNdn',$flow,$sec,$usec,($ival||Inf),$size));
+  }
+}
