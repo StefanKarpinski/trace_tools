@@ -53,9 +53,11 @@ void file_cloexec(FILE *file) {
 
 FILE *open_arg(const char *arg) {
   FILE *file;
-  if (0 == strcmp(suffix(arg,'.'),".gz")) {
+  if (!arg || !strcmp(arg,"-")) {
+    return stdin;
+  } else if (!strcmp(suffix(arg,'.'),".gz")) {
       file = cmd_read("zcat","-f",arg,NULL);
-  } else if (0 == strcmp(suffix(arg,'.'),".bz2")) {
+  } else if (!strcmp(suffix(arg,'.'),".bz2")) {
       file = cmd_read("bzcat","-f",arg,NULL);
   } else {
       if (!(file = fopen(arg,"r")))

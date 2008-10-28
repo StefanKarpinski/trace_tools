@@ -11,14 +11,14 @@ typedef struct {
 } flow_key_t;
 
 typedef struct {
-  u_int32_t id;
+  u_int32_t index;
   double    last_time;
   u_int32_t last_seqno;
 } flow_data_t;
 
 // flow hashing functions
 
-guint flow_hash(gconstpointer a) {
+guint flow_hashf(gconstpointer a) {
   flow_key_t *f = (flow_key_t *) a;
   guint32 h = f->proto;
   h = (h<<5)-h + f->src_ip;
@@ -81,51 +81,38 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
 #define SIZE_TRANSPORT_PAYLOAD  4
 #define SIZE_APPLICATION_DATA   8
 
-// output styles
-
-#define OUTPUT_TAB 0
-#define OUTPUT_CSV 1
-#define OUTPUT_BIN 2
-
-// possible actions for negative intervals
-
-#define NEG_IVAL_DISCARD  0
-#define NEG_IVAL_KEEP     1
-#define NEG_IVAL_ABSOLUTE 2
-#define NEG_IVAL_ZERO     3
-
 // main processing loop
 
 int main(int argc, char ** argv) {
 
   // option variables
   char *filter       = NULL;
-  char *map_file     = NULL;
-  u_int32_t flow_id  = 1;
-  u_int16_t min_size = 0;
+  char *flow_file    = NULL;
+  char *packet_file  = NULL;
+  u_int16_t min_size = 1;
   double    max_ival = INFINITY;
   u_int8_t size_type = SIZE_PACKET;
-  u_int8_t output    = OUTPUT_TAB;
-  u_int8_t neg_ival  = NEG_IVAL_KEEP;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"F:i:f:m:M:PITAtcbdkaz")) != -1) {
+  while ((i = getopt(argc,argv,"f:p:F:s:i:PITA")) != -1) {
     switch (i) {
+      case 'f':
+        flow_file = optarg;
+        break;
+      case 'p':
+        packet_file = optarg;
+        break;
+
       case 'F':
         filter = optarg;
         break;
-      case 'i':
-        flow_id = atoi(optarg);
-        break;
-      case 'f':
-        map_file = optarg;
-        break;
-      case 'M':
-        max_ival = atof(optarg);
-        break;
-      case 'm':
+
+      case 's':
         min_size = atoi(optarg);
+        break;
+      case 'i':
+        max_ival = atof(optarg);
         break;
 
       case 'P':
@@ -141,29 +128,6 @@ int main(int argc, char ** argv) {
         size_type = SIZE_APPLICATION_DATA;
         break;
 
-      case 't':
-        output = OUTPUT_TAB;
-        break;
-      case 'c':
-        output = OUTPUT_CSV;
-        break;
-      case 'b':
-        output = OUTPUT_BIN;
-        break;
-
-      case 'd':
-        neg_ival = NEG_IVAL_DISCARD;
-        break;
-      case 'k':
-        neg_ival = NEG_IVAL_KEEP;
-        break;
-      case 'a':
-        neg_ival = NEG_IVAL_ABSOLUTE;
-        break;
-      case 'z':
-        neg_ival = NEG_IVAL_ZERO;
-        break;
-
       case '?':
         if (isprint(optopt))
           fprintf(stderr,"Unknown option `-%c'.\n",optopt);
@@ -173,22 +137,29 @@ int main(int argc, char ** argv) {
         return 1;
     }
   }
-  if (max_ival <= 0)
-    die("Maximum interval must be positive: %f\n",max_ival);
+  if (!flow_file)
+    die("Please specify a flow file using -f <file>.");
+  if (!packet_file)
+    die("Please specify a packet file using -p <file>.");
   
-  // open map file for writing if requested
+  // open flow & packet files for writing
   
-  FILE *map = NULL;
-  if (map_file) {
-    if (!(map = fopen(map_file,"w")))
-        die("fopen(\"%s\",\"r\"): %s\n",map_file,errstr);
-    file_cloexec(map);
-  }
+  FILE *flows = fopen(flow_file,"w");
+  if (!flows)
+      die("fopen(\"%s\",\"r\"): %s\n",flow_file,errstr);
+  file_cloexec(flows);
+
+  FILE *packets = fopen(packet_file,"w");
+  if (!packets)
+      die("fopen(\"%s\",\"r\"): %s\n",packet_file,errstr);
+  file_cloexec(packets);
 
   // process each argument as a trace file
 
-  GHashTable *flows = g_hash_table_new(flow_hash,flow_equal);
+  u_int32_t flow_index = 0;
+  GHashTable *flow_hash = g_hash_table_new(flow_hashf,flow_equal);
 
+  if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
     fprintf(stderr,"processing %s...\n",argv[i]);
     FILE *file = open_arg(argv[i]);
@@ -218,7 +189,6 @@ int main(int argc, char ** argv) {
         struct ether_header *eth = (struct ether_header *) pkt;
         if (eth->ether_type != ETHERTYPE_IP) continue;
         struct ip *ip = (struct ip *) (pkt + sizeof(*eth));
-        double time = info.ts.tv_sec + info.ts.tv_usec*1e-6;
         
         flow_key_t key;
         key.proto  = ip->ip_p;
@@ -232,55 +202,25 @@ int main(int argc, char ** argv) {
           key.dst_port = ICMP_TYCO(ip);
         }
 
-        flow_data_t *flow = g_hash_table_lookup(flows,&key);
+        flow_data_t *flow = g_hash_table_lookup(flow_hash,&key);
+        double time = info.ts.tv_sec + info.ts.tv_usec*1e-6;
         double ival = flow ? time - flow->last_time : INFINITY;
-
         if (ival > max_ival) {
           if (!flow) flow = allocate(flow);
-          flow->id = flow_id++;
+          flow->index = flow_index++;
           flow->last_time = -INFINITY;
           flow->last_seqno = 0;
           if (ival == INFINITY)
-            g_hash_table_insert(flows,copy(key),flow);
-          else
-            ival = INFINITY;
+            g_hash_table_insert(flow_hash,copy(key),flow);
 
-          if (map) {
-            if (output != OUTPUT_BIN) {
-              char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
-              inet_ntop(AF_INET,&key.src_ip,src,sizeof(src));
-              inet_ntop(AF_INET,&key.dst_ip,dst,sizeof(dst));
-              char *format =
-                output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\n" :
-                output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u\n" : NULL;
-              fprintf(map,format,
-                flow->id, key.proto, src, dst, key.src_port, key.dst_port
-              );
-            } else {
-              char data[FLOW_RECORD_SIZE];
-              *((u_int32_t *) (data +  0)) = htonl(flow->id);
-              *((u_int8_t  *) (data +  4)) = key.proto;
-              *((u_int32_t *) (data +  5)) = key.src_ip;
-              *((u_int32_t *) (data +  9)) = key.dst_ip;
-              *((u_int16_t *) (data + 13)) = htons(key.src_port);
-              *((u_int16_t *) (data + 15)) = htons(key.dst_port);
-              if (fwrite(data,sizeof(data),1,map) != 1)
-                die("fwrite: %u\n",errno);
-            }
-          }
-        } else if (ival < 0) {
-          switch (neg_ival) {
-            case NEG_IVAL_DISCARD:
-              continue; // discard packet
-            case NEG_IVAL_KEEP:
-              break; // record it as-is
-            case NEG_IVAL_ABSOLUTE:
-              ival = fabs(ival);
-              break;
-            case NEG_IVAL_ZERO:
-              ival = 0.0;
-              break;
-          }
+          char data[FLOW_RECORD_SIZE];
+          *((u_int8_t  *) (data +  0)) = key.proto;
+          *((u_int32_t *) (data +  1)) = key.src_ip;
+          *((u_int32_t *) (data +  5)) = key.dst_ip;
+          *((u_int16_t *) (data +  9)) = htons(key.src_port);
+          *((u_int16_t *) (data + 11)) = htons(key.dst_port);
+          if (fwrite(data,sizeof(data),1,flows) != 1)
+            die("fwrite: %s\n",errstr);
         }
 
         u_int16_t size;
@@ -305,6 +245,7 @@ int main(int argc, char ** argv) {
                   (pkt + sizeof(*eth) + IP4_HEADER_UNIT * IP_HL(ip));
                 size = IP4_SIZE(ip) - IP4_HEADER_UNIT * (IP_HL(ip) + TH_OFF(tcp));
                 if (size_type == SIZE_APPLICATION_DATA) {
+                  // TODO: verify correctness of TCP app data logic.
                   u_int32_t last_byte_seqno = ntohl(tcp->th_seq) + size;
                   if (!(tcp->th_flags & (TH_SYN|TH_FIN|TH_RST))) last_byte_seqno--;
                   if (flow->last_time < 0) {
@@ -332,28 +273,13 @@ int main(int argc, char ** argv) {
         if (size < min_size)
           continue; // ignore packet
 
-        switch (output) {
-          case OUTPUT_TAB:
-            printf("%u\t%18.6f\t%10.6f\t%u\n", flow->id, time, ival, size);
-            break;
-          case OUTPUT_CSV: {
-            char buf[256];
-            if (ival == INFINITY) *buf = '\0';
-            else snprintf(buf,sizeof(buf),"%.6f",ival);
-            printf("%u,%.6f,%s,%u\n", flow->id, time, buf, size);
-            break;
-          }
-          case OUTPUT_BIN: {
-            char data[PACKET_RECORD_SIZE];
-            *((u_int32_t *) (data +  0)) = htonl(flow->id);
-            *((u_int32_t *) (data +  4)) = htonl(info.ts.tv_sec);
-            *((u_int32_t *) (data +  8)) = htonl(info.ts.tv_usec);
-            *((double *)    (data + 12)) = ival;
-            *((u_int16_t *) (data + 20)) = htons(size);
-            if (fwrite(data,sizeof(data),1,stdout) != 1)
-              die("fwrite: %u\n",errno);
-          }
-        }
+        char data[PACKET_RECORD_SIZE];
+        *((u_int32_t *) (data +  0)) = htonl(flow->index);
+        *((u_int32_t *) (data +  4)) = htonl(info.ts.tv_sec);
+        *((u_int32_t *) (data +  8)) = htonl(info.ts.tv_usec);
+        *((u_int16_t *) (data + 12)) = htons(size);
+        if (fwrite(data,sizeof(data),1,packets) != 1)
+          die("fwrite: %s\n",errstr);
 
         flow->last_time = time;
       }
@@ -361,6 +287,7 @@ int main(int argc, char ** argv) {
         die("pcap: %s\n",error);
     }
     fclose(file);
+    wait(NULL);
   }
   return 0;
 }

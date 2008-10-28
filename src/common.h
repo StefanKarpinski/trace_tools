@@ -35,8 +35,8 @@
 #define errstr strerror(errno)
 #define g_hash_table_exists(h,x) g_hash_table_lookup_extended(h,x,NULL,NULL)
 
-#define FLOW_RECORD_SIZE 17
-#define PACKET_RECORD_SIZE 22
+#define FLOW_RECORD_SIZE 13
+#define PACKET_RECORD_SIZE 14
 
 // error handling
 
