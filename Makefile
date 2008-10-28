@@ -1,5 +1,5 @@
 USR = $(HOME)/usr
-PROGS = bin/process bin/unpack bin/matrix
+PROGS = bin/process bin/unpack bin/matrix bin/sortpkts
 
 default: $(PROGS)
 
