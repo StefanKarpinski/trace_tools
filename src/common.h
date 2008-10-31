@@ -26,7 +26,9 @@
 
 #define TCP_MAX_SKIP ((1<<16)-1)
 
+#ifndef INFINITY
 #define INFINITY (1.0/0.0)
+#endif
 
 #define MAX_IP_LENGTH 15
 
@@ -45,6 +47,7 @@ int  die(const char * fmt, ...);
 
 // other utility functions
 
+void c_unescape(char* s);
 void file_cloexec(FILE *file);
 FILE *cmd_read(const char *arg, ...);
 FILE *open_arg(const char *arg);

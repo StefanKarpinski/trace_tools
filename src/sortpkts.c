@@ -119,6 +119,6 @@ int main(int argc, char ** argv) {
     }
   }
   if (parallel)
-    while (wait() != -1) ;
+    while (wait(NULL) != -1) ;
   return 0;
 }

@@ -17,6 +17,59 @@ int die(const char * fmt, ...) {
   exit(1);
 }
 
+// unescape a C-style quoted string
+
+void c_unescape(char* s) {
+  while (*s) {
+    if (*s++ == '\\') {
+      switch (*s++) {
+      case 'n':
+        s[-2] = '\n';
+        memmove(s-1, s, strlen(s)+1);
+        break;
+      case 'r':
+        s[-2] = '\r';
+        memmove(s-1, s, strlen(s)+1);
+        break;
+      case 't':
+        s[-2] = '\t';
+        memmove(s-1, s, strlen(s)+1);
+        break;
+      case 'v':
+        s[-2] = '\v';
+        memmove(s-1, s, strlen(s)+1);
+        break;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        {
+          long val;
+          char tmp[4];
+          memcpy(tmp, s-1, 3);
+          tmp[3] = '\0';
+          val = strtol(tmp, NULL, 8);
+          s[-2] = (char)val;
+          memmove(s-1, s+2, strlen(s+2)+1);
+        }
+        break;
+      default:
+        s[-2] = s[-1];
+        memmove(s-1, s, strlen(s)+1);
+      }
+      --s;
+    }
+  }
+}
+// STOLEN FROM:
+// http://prdownloads.sourceforge.net/boxp/bo2k1-3_beta5_src.zip [GPL]
+
 // return the suffix of a file name
 
 static char *suffix(const char *file, const char sep) {

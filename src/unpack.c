@@ -10,7 +10,6 @@
 
 #define OUTPUT_TAB 0
 #define OUTPUT_CSV 1
-#define OUTPUT_BIN 2
 
 // main processing loop
 
@@ -19,11 +18,12 @@ int main(int argc, char ** argv) {
   // option variables
   u_int8_t  input  = INPUT_UNKNOWN;
   u_int8_t  output = OUTPUT_TAB;
+  char     *format = NULL;
   u_int32_t offset = 0;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptco:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcF:o:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -35,9 +35,14 @@ int main(int argc, char ** argv) {
 
       case 't':
         output = OUTPUT_TAB;
+        format = NULL;
         break;
       case 'c':
         output = OUTPUT_CSV;
+        format = NULL;
+        break;
+      case 'F':
+        format = optarg;
         break;
 
       case 'o':
@@ -55,6 +60,10 @@ int main(int argc, char ** argv) {
   }
   if (input == INPUT_UNKNOWN)
     die("Please speficy input type: -f for flows or -p for packets.\n");
+  if (format) {
+    format = strdup(format);
+    c_unescape(format);
+  }
   
   switch (input) {
     case INPUT_FLOWS: {
@@ -72,7 +81,7 @@ int main(int argc, char ** argv) {
           char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
           inet_ntop(AF_INET,&src_ip,src,sizeof(src));
           inet_ntop(AF_INET,&dst_ip,dst,sizeof(dst));
-          char *format =
+          if (!format) format =
             output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\n" :
             output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u\n" : NULL;
           printf(format,offset+index++,proto,src,dst,src_port,dst_port);
@@ -96,7 +105,7 @@ int main(int argc, char ** argv) {
           u_int32_t usec = ntohl(*((u_int32_t *) (data + 8)));
           u_int16_t size = ntohs(*((u_int16_t *) (data + 12)));
           double time = sec + usec*1e-6;
-          char *format =
+          if (!format) format =
             output == OUTPUT_TAB ? "%u\t%18.6f\t%u\n" :
             output == OUTPUT_CSV ? "%u,%.6f,%u\n" : NULL;
           printf(format,offset+flow,time,size);
