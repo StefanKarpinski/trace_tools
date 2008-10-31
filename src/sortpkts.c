@@ -50,9 +50,10 @@ int main(int argc, char ** argv) {
 
   int major = SORT_FLOW;
   int minor = SORT_TIME;
+  int parallel = 0;
 
   int i;
-  while ((i = getopt(argc,argv,"FTSfts")) != -1) {
+  while ((i = getopt(argc,argv,"FTSftsp")) != -1) {
     switch (i) {
       case 'F': major = SORT_FLOW; break;
       case 'T': major = SORT_TIME; break;
@@ -61,6 +62,8 @@ int main(int argc, char ** argv) {
       case 'f': minor = SORT_FLOW; break;
       case 't': minor = SORT_TIME; break;
       case 's': minor = SORT_SIZE; break;
+      
+      case 'p': parallel = 1; break;
 
       case '?':
         if (isprint(optopt))
@@ -86,6 +89,10 @@ int main(int argc, char ** argv) {
 
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
+    if (optind != argc)
+      fprintf(stderr,"sorting %s...\n",argv[i]);
+    if (parallel && fork()) continue;
+
     FILE *file = fopen(argv[i],"r+");
     if (!file)
       die("fopen(\"%s\",\"r\"): %s\n",argv[i],errstr);
@@ -106,6 +113,12 @@ int main(int argc, char ** argv) {
 
     munmap(packets,fs.st_size);
     fclose(file);
+    if (parallel) {
+      fprintf(stderr,"done [%s].\n",argv[i]);
+      return 0;
+    }
   }
+  if (parallel)
+    while (wait() != -1) ;
   return 0;
 }
