@@ -44,33 +44,28 @@ int main(int argc, char ** argv) {
   int i;
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
-    u_int32_t last_flow = 0xffff;
     FILE *file = open_arg(argv[i]);
-    char data[PACKET_RECORD_SIZE];
+
     double last_time = -INFINITY;
+    u_int32_t last_flow = 0xffff;
     u_int32_t row[DIM];
     memset(row,0,DIM*sizeof(*row));
     int empty = 1;
-    while (fread(data,sizeof(data),1,file) == 1) {
-      u_int32_t flow = ntohl(*((u_int32_t *) (data + 0)));
-      u_int32_t sec  = ntohl(*((u_int32_t *) (data + 4)));
-      u_int32_t usec = ntohl(*((u_int32_t *) (data + 8)));
-      u_int16_t size = ntohs(*((u_int16_t *) (data + 12)));
-      double time = sec + usec*1e-6;
-      if (flow != last_flow) {
+
+    packet_record packet;
+    while (read_packet(file,&packet)) {
+      ntoh_packet(&packet);
+      double time = packet.sec + packet.usec*1e-6;
+      if (packet.flow != last_flow)
         flush_row(&empty,last_flow,row);
-      } else {
-        double ival = time - last_time;
-        row[ival_index(ival)]++;
-      }
-      row[size_index(size)]++;
-      last_flow = flow;
+      else
+        row[ival_index(time-last_time)]++;
+      row[size_index(packet.size)]++;
+      last_flow = packet.flow;
       last_time = time;
       empty = 0;
     }
     flush_row(&empty,last_flow,row);
-    if (ferror(file))
-      die("fread: %u\n",errno);
     fclose(file);
     wait(NULL);
   }

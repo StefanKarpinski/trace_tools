@@ -84,40 +84,37 @@ int main(int argc, char ** argv) {
       if (optind == argc) argc++;
       for (i = optind; i < argc; i++) {
         FILE *file = open_arg(argv[i]);
-        char data[FLOW_RECORD_SIZE];
-        while (fread(data,sizeof(data),1,file) == 1) {
-          u_int8_t  proto    =       *((u_int8_t  *) (data + 0));
-          u_int32_t src_ip   =       *((u_int32_t *) (data + 1));
-          u_int32_t dst_ip   =       *((u_int32_t *) (data + 5));
-          u_int16_t src_port = ntohs(*((u_int16_t *) (data + 9)));
-          u_int16_t dst_port = ntohs(*((u_int16_t *) (data + 11)));
+        flow_record flow;
+        while (read_flow(file,&flow)) {
+          ntoh_flow(&flow);
           char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
-          inet_ntop(AF_INET,&src_ip,src,sizeof(src));
-          inet_ntop(AF_INET,&dst_ip,dst,sizeof(dst));
+          inet_ntop(AF_INET,&flow.src_ip,src,sizeof(src));
+          inet_ntop(AF_INET,&flow.dst_ip,dst,sizeof(dst));
           if (!format) format =
             output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
             output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
-          char *proto_str = proto_name(proto);
+          char *proto_str = proto_name(flow.proto);
           char *desc = "";
-          switch (proto) {
+          switch (flow.proto) {
             case IP_PROTO_ICMP: {
-              u_int8_t tyco = ntohs(dst_port);
+              u_int8_t tyco = ntohs(flow.dst_port);
               desc = icmp_desc(tyco >> 8,tyco & 0xff);
               break;
             }
             case IP_PROTO_TCP:
             case IP_PROTO_UDP:
-              desc = pair_desc(proto,src_port,dst_port);
+              desc = pair_desc(flow.proto,flow.src_port,flow.dst_port);
               break;
           }
           printf(format,
             offset+index++,
-            proto,src,dst,src_port,dst_port,proto_str,desc
+            flow.proto,
+            src,dst,
+            flow.src_port,
+            flow.dst_port,
+            proto_str,desc
           );
         }
-        // TODO: detect trailing partial record.
-        if (ferror(file))
-          die("fread: %u\n",errno);
         fclose(file);
         wait(NULL);
       }
@@ -133,21 +130,15 @@ int main(int argc, char ** argv) {
       if (optind == argc) argc++;
       for (i = optind; i < argc; i++) {
         FILE *file = open_arg(argv[i]);
-        char data[PACKET_RECORD_SIZE];
-        while (fread(data,sizeof(data),1,file) == 1) {
-          u_int32_t flow = ntohl(*((u_int32_t *) (data + 0)));
-          u_int32_t sec  = ntohl(*((u_int32_t *) (data + 4)));
-          u_int32_t usec = ntohl(*((u_int32_t *) (data + 8)));
-          u_int16_t size = ntohs(*((u_int16_t *) (data + 12)));
-          double time = sec + usec*1e-6;
+        packet_record packet;
+        while (read_packet(file,&packet)) {
+          ntoh_packet(&packet);
+          double time = packet.sec + packet.usec*1e-6;
           if (!format) format =
             output == OUTPUT_TAB ? "%u\t%17.6f\t%u\n" :
             output == OUTPUT_CSV ? "%u,%.6f,%u\n" : NULL;
-          printf(format,offset+flow,time,size);
+          printf(format,offset+packet.flow,time,packet.size);
         }
-        // TODO: detect trailing partial record.
-        if (ferror(file))
-          die("fread: %u\n",errno);
         fclose(file);
         wait(NULL);
       }
