@@ -39,8 +39,6 @@ print <<-__CODE__
 #include "common.h"
 #include "flow_desc.h"
 
-char proto_buf[4]; // 1 + length of 2^8-1 = 255
-
 char *proto_name(u_int8_t proto) {
   switch (proto) {
 __CODE__
@@ -54,11 +52,8 @@ end
 print <<-__CODE__
 #line #{__LINE__} "#{__FILE__}"
   }
-  snprintf(proto_buf,sizeof(proto_buf),"%u",proto);
-  return proto_buf;
+  return NULL;
 }
-
-char icmp_buf[4]; // 1 + length of 2^8-1 = 255
 
 char *icmp_desc(u_int8_t type, u_int8_t code) {
   switch (type) {
@@ -73,13 +68,10 @@ end
 print <<-__CODE__
 #line #{__LINE__} "#{__FILE__}"
   }
-  snprintf(icmp_buf,sizeof(icmp_buf),"%u",type);
-  return icmp_buf;
+  return NULL;
 }
 
-char port_buf[6]; // 1 + length of 2^16-1 = 65535
-
-static char *port_desc_null(u_int8_t proto, u_int16_t port) {
+char *port_desc(u_int8_t proto, u_int16_t port) {
   switch (port) {
 __CODE__
 
@@ -111,14 +103,6 @@ print <<-__CODE__
   return NULL;
 }
 
-char *port_desc(u_int8_t proto, u_int16_t port) {
-  char *desc = port_desc_null(proto,port);
-  snprintf(port_buf,sizeof(port_buf),"%u",port);
-  return port_buf;
-}
-
-char pair_buf[12]; // 2 + 2 * length of 2^16-1 = 65535
-
 char *pair_desc(u_int8_t proto, u_int16_t src_port, u_int16_t dst_port) {
   u_int16_t min_port, max_port;
   if (src_port <= dst_port) {
@@ -129,12 +113,11 @@ char *pair_desc(u_int8_t proto, u_int16_t src_port, u_int16_t dst_port) {
     max_port = src_port;
   }
   char *desc;
-  desc = port_desc_null(proto,min_port);
+  desc = port_desc(proto,min_port);
   if (desc) return desc;
-  desc = port_desc_null(proto,max_port);
+  desc = port_desc(proto,max_port);
   if (desc) return desc;
-  snprintf(pair_buf,sizeof(pair_buf),"%u/%u",min_port,max_port);
-  return pair_buf;
+  return NULL;
 }
 
 __CODE__

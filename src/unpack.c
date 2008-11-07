@@ -94,7 +94,7 @@ int main(int argc, char ** argv) {
             output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
             output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
           char *proto_str = proto_name(flow.proto);
-          char *desc = "";
+          char *desc = NULL;
           switch (flow.proto) {
             case IP_PROTO_ICMP: {
               u_int8_t tyco = ntohs(flow.dst_port);
@@ -109,10 +109,11 @@ int main(int argc, char ** argv) {
           printf(format,
             offset+index++,
             flow.proto,
-            src,dst,
+            src, dst,
             flow.src_port,
             flow.dst_port,
-            proto_str,desc
+            proto_str ? proto_str : "",
+            desc ? desc : ""
           );
         }
         fclose(file);
