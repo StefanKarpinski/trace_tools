@@ -13,7 +13,7 @@ LIBSDIR = -L$(USR)/lib
 LIBS = -lglib-2.0 -lpcap -lm
 
 src/flow_desc.c: types/flow_desc.rb \
-	types/icmp_types.csv types/port_numbers.csv
+	types/ip_protocols.csv types/icmp_types.csv types/port_numbers.csv
 	ruby $^ > $@
 
 src/%.o: src/%.c src/common.h src/flow_desc.h
