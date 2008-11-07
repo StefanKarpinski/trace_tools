@@ -82,6 +82,10 @@ int main(int argc, char ** argv) {
   
   switch (input) {
     case INPUT_FLOWS: {
+      if (!format) format =
+        output == OUTPUT_TAB ? "%s%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
+        output == OUTPUT_CSV ? "%s%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
+
       u_int32_t index = 0;
       if (optind == argc) argc++;
       for (i = optind; i < argc; i++) {
@@ -92,9 +96,6 @@ int main(int argc, char ** argv) {
           char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
           inet_ntop(AF_INET,&flow.src_ip,src,sizeof(src));
           inet_ntop(AF_INET,&flow.dst_ip,dst,sizeof(dst));
-          if (!format) format =
-            output == OUTPUT_TAB ? "%s%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
-            output == OUTPUT_CSV ? "%s%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
           char *proto_str = proto_name(flow.proto);
           char *desc = NULL;
           switch (flow.proto) {
@@ -124,7 +125,11 @@ int main(int argc, char ** argv) {
       }
       break;
     }
-    case INPUT_PACKETS:
+    case INPUT_PACKETS: {
+      if (!format) format =
+        output == OUTPUT_TAB ? "%s%u\t%17.6f\t%u\n" :
+        output == OUTPUT_CSV ? "%s%u,%.6f,%u\n" : NULL;
+
       if (optind == argc) argc++;
       for (i = optind; i < argc; i++) {
         FILE *file = open_arg(argv[i]);
@@ -132,9 +137,6 @@ int main(int argc, char ** argv) {
         while (read_packet(file,&packet)) {
           ntoh_packet(&packet);
           double time = packet.sec + packet.usec*1e-6;
-          if (!format) format =
-            output == OUTPUT_TAB ? "%s%u\t%17.6f\t%u\n" :
-            output == OUTPUT_CSV ? "%s%u,%.6f,%u\n" : NULL;
           printf(format,
             prefix ? prefix : "",
             offset+packet.flow,
@@ -146,6 +148,7 @@ int main(int argc, char ** argv) {
         wait(NULL);
       }
       break;
+    }
   }
 
   return 0;
