@@ -17,6 +17,52 @@ int die(const char * fmt, ...) {
   exit(1);
 }
 
+// flow & packet processing functions
+
+void ntoh_flow(flow_record *flow) {
+  flow->src_port = ntohs(flow->src_port);
+  flow->dst_port = ntohs(flow->dst_port);
+}
+void hton_flow(flow_record *flow) {
+  flow->src_port = htons(flow->src_port);
+  flow->dst_port = htons(flow->dst_port);
+}
+
+void ntoh_packet(packet_record *packet) {
+  packet->flow = ntohl(packet->flow);
+  packet->sec  = ntohl(packet->sec );
+  packet->usec = ntohl(packet->usec);
+  packet->size = ntohs(packet->size);
+}
+void hton_packet(packet_record *packet) {
+  packet->flow = htonl(packet->flow);
+  packet->sec  = htonl(packet->sec );
+  packet->usec = htonl(packet->usec);
+  packet->size = htons(packet->size);
+}
+
+void write_flow(FILE *file, flow_record *flow) {
+  if (fwrite(flow,sizeof(flow_record),1,file) != 1)
+    die("fwrite: %s\n",errstr);
+}
+int read_flow(FILE *file, flow_record *flow) {
+  if (fread(flow,sizeof(flow_record),1,file) != 1)
+    if (ferror(file))
+      die("fwrite: %s\n",errstr);
+  return feof(file) ? 0 : 1;
+}
+
+void write_packet(FILE *file, packet_record *packet) {
+  if (fwrite(packet,sizeof(packet_record),1,file) != 1)
+    die("fwrite: %s\n",errstr);
+}
+int read_packet(FILE *file, packet_record *packet) {
+  if (fread(packet,sizeof(packet_record),1,file) != 1)
+    if (ferror(file))
+      die("fwrite: %s\n",errstr);
+  return feof(file) ? 0 : 1;
+}
+
 // unescape a C-style quoted string
 
 void c_unescape(char* s) {

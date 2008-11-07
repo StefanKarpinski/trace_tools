@@ -4,13 +4,6 @@
 #include "common.h"
 #include "smoothsort.c"
 
-struct packet_record {
-  u_int32_t flow;
-  u_int32_t sec;
-  u_int32_t usec;
-  u_int16_t size;
-} __attribute__((packed));
-
 void swap_packets(void *m, size_t a, size_t b) {
   struct packet_record *p = (struct packet_record *) m;
   struct packet_record t = p[a];

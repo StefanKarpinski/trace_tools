@@ -3,23 +3,15 @@
 // flow data structures
 
 typedef struct {
-  u_int8_t  proto;
-  u_int32_t src_ip;
-  u_int32_t dst_ip;
-  u_int16_t src_port;
-  u_int16_t dst_port;
-} flow_key_t;
-
-typedef struct {
   u_int32_t index;
   double    last_time;
   u_int32_t last_seqno;
-} flow_data_t;
+} flow_data;
 
 // flow hashing functions
 
 guint flow_hashf(gconstpointer a) {
-  flow_key_t *f = (flow_key_t *) a;
+  flow_record *f = (flow_record *) a;
   guint32 h = f->proto;
   h = (h<<5)-h + f->src_ip;
   h = (h<<5)-h + f->src_port;
@@ -29,8 +21,8 @@ guint flow_hashf(gconstpointer a) {
 }        
          
 gint flow_equal(gconstpointer a, gconstpointer b) {
-  flow_key_t *x = (flow_key_t *) a;
-  flow_key_t *y = (flow_key_t *) b;
+  flow_record *x = (flow_record *) a;
+  flow_record *y = (flow_record *) b;
   return
     x->proto     == y->proto    &&
     x->src_ip    == y->src_ip   &&
@@ -190,37 +182,30 @@ int main(int argc, char ** argv) {
         if (eth->ether_type != ETHERTYPE_IP) continue;
         struct ip *ip = (struct ip *) (pkt + sizeof(*eth));
         
-        flow_key_t key;
-        key.proto  = ip->ip_p;
-        key.src_ip = ip->ip_src.s_addr;
-        key.dst_ip = ip->ip_dst.s_addr;
+        flow_record flow;
+        flow.proto  = ip->ip_p;
+        flow.src_ip = ip->ip_src.s_addr;
+        flow.dst_ip = ip->ip_dst.s_addr;
         if (HAS_PORT(ip)) {
-          key.src_port = SRC_PORT(ip);
-          key.dst_port = DST_PORT(ip);
+          flow.src_port = SRC_PORT(ip);
+          flow.dst_port = DST_PORT(ip);
         } else {
-          key.src_port = ICMP_IDNO(ip);
-          key.dst_port = ICMP_TYCO(ip);
+          flow.src_port = ICMP_IDNO(ip);
+          flow.dst_port = ICMP_TYCO(ip);
         }
 
-        flow_data_t *flow = g_hash_table_lookup(flow_hash,&key);
+        flow_data *fd = g_hash_table_lookup(flow_hash,&flow);
         double time = info.ts.tv_sec + info.ts.tv_usec*1e-6;
-        double ival = flow ? time - flow->last_time : INFINITY;
-        if (ival > max_ival) {
-          if (!flow) flow = allocate(flow);
-          flow->index = flow_index++;
-          flow->last_time = -INFINITY;
-          flow->last_seqno = 0;
+        double ival = fd ? time - fd->last_time : INFINITY;
+        if (!fd || ival > max_ival) {
+          if (!fd) fd = allocate(fd);
+          fd->index = flow_index++;
+          fd->last_time = -INFINITY;
+          fd->last_seqno = 0;
           if (ival == INFINITY)
-            g_hash_table_insert(flow_hash,copy(key),flow);
-
-          char data[FLOW_RECORD_SIZE];
-          *((u_int8_t  *) (data +  0)) = key.proto;
-          *((u_int32_t *) (data +  1)) = key.src_ip;
-          *((u_int32_t *) (data +  5)) = key.dst_ip;
-          *((u_int16_t *) (data +  9)) = htons(key.src_port);
-          *((u_int16_t *) (data + 11)) = htons(key.dst_port);
-          if (fwrite(data,sizeof(data),1,flows) != 1)
-            die("fwrite: %s\n",errstr);
+            g_hash_table_insert(flow_hash,copy(flow),fd);
+          hton_flow(&flow);
+          write_flow(flows,&flow);
         }
 
         u_int16_t size;
@@ -248,17 +233,17 @@ int main(int argc, char ** argv) {
                   // TODO: verify correctness of TCP app data logic.
                   u_int32_t last_byte_seqno = ntohl(tcp->th_seq) + size;
                   if (!(tcp->th_flags & (TH_SYN|TH_FIN|TH_RST))) last_byte_seqno--;
-                  if (flow->last_time < 0) {
-                    flow->last_seqno = last_byte_seqno;
+                  if (fd->last_time < 0) {
+                    fd->last_seqno = last_byte_seqno;
                   } else // regular follow-up packet
-                  if (size + TCP_MAX_SKIP >= last_byte_seqno - flow->last_seqno) {
-                    size = last_byte_seqno - flow->last_seqno;
-                    flow->last_seqno = last_byte_seqno;
+                  if (size + TCP_MAX_SKIP >= last_byte_seqno - fd->last_seqno) {
+                    size = last_byte_seqno - fd->last_seqno;
+                    fd->last_seqno = last_byte_seqno;
                   } else // possible seqno wrap-around
-                  if (size + TCP_MAX_SKIP >= last_byte_seqno + abs(flow->last_seqno)) {
+                  if (size + TCP_MAX_SKIP >= last_byte_seqno + abs(fd->last_seqno)) {
                     // FIXME: this seems questionable.
-                    size = last_byte_seqno + abs(flow->last_seqno);
-                    flow->last_seqno = last_byte_seqno;
+                    size = last_byte_seqno + abs(fd->last_seqno);
+                    fd->last_seqno = last_byte_seqno;
                   } else { // out-of-order packet, no new data.
                     size = 0;
                   }
@@ -273,15 +258,13 @@ int main(int argc, char ** argv) {
         if (size < min_size)
           continue; // ignore packet
 
-        char data[PACKET_RECORD_SIZE];
-        *((u_int32_t *) (data +  0)) = htonl(flow->index);
-        *((u_int32_t *) (data +  4)) = htonl(info.ts.tv_sec);
-        *((u_int32_t *) (data +  8)) = htonl(info.ts.tv_usec);
-        *((u_int16_t *) (data + 12)) = htons(size);
-        if (fwrite(data,sizeof(data),1,packets) != 1)
-          die("fwrite: %s\n",errstr);
+        packet_record packet = {
+          fd->index, info.ts.tv_sec, info.ts.tv_usec, size
+        };
+        hton_packet(&packet);
+        write_packet(packets,&packet);
 
-        flow->last_time = time;
+        fd->last_time = time;
       }
     } else {
         die("pcap: %s\n",error);

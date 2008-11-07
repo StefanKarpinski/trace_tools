@@ -45,6 +45,37 @@
 int warn(const char * fmt, ...);
 int  die(const char * fmt, ...);
 
+// flow & packet structures and functions
+
+struct flow_record {
+  u_int8_t  proto;
+  u_int32_t src_ip;
+  u_int32_t dst_ip;
+  u_int16_t src_port;
+  u_int16_t dst_port;
+} __attribute__((packed));
+
+struct packet_record {
+  u_int32_t flow;
+  u_int32_t sec;
+  u_int32_t usec;
+  u_int16_t size;
+} __attribute__((packed));
+
+typedef struct flow_record flow_record;
+typedef struct packet_record packet_record;
+
+void ntoh_flow(flow_record *flow);
+void hton_flow(flow_record *flow);
+void ntoh_packet(packet_record *packet);
+void hton_packet(packet_record *packet);
+
+void write_flow(FILE *file, flow_record *flow);
+int   read_flow(FILE *file, flow_record *flow);
+
+void write_packet(FILE *file, packet_record *packet);
+int   read_packet(FILE *file, packet_record *packet);
+
 // other utility functions
 
 void c_unescape(char* s);
