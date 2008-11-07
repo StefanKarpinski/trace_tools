@@ -17,15 +17,16 @@
 int main(int argc, char ** argv) {
 
   // option variables
-  u_int8_t  input  = INPUT_UNKNOWN;
-  u_int8_t  output = OUTPUT_TAB;
-  char     *prefix = NULL;
-  char     *format = NULL;
-  u_int32_t offset = 0;
+  u_int8_t  input   = INPUT_UNKNOWN;
+  u_int8_t  output  = OUTPUT_TAB;
+  char     *prefix  = NULL;
+  char     *format  = NULL;
+  char     *unknown = "";
+  u_int32_t offset  = 0;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:F:o:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcP:u:F:o:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -45,6 +46,9 @@ int main(int argc, char ** argv) {
         break;
       case 'P':
         prefix = optarg;
+        break;
+      case 'u':
+        unknown = optarg;
         break;
       case 'F':
         format = optarg;
@@ -116,8 +120,8 @@ int main(int argc, char ** argv) {
             src, dst,
             flow.src_port,
             flow.dst_port,
-            proto_str ? proto_str : "",
-            desc ? desc : ""
+            proto_str ? proto_str : unknown,
+            desc ? desc : unknown
           );
         }
         fclose(file);
