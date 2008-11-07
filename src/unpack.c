@@ -1,4 +1,5 @@
 #include "common.h"
+#include "flow_desc.h"
 
 // intput types
 
@@ -75,8 +76,8 @@ int main(int argc, char ** argv) {
     case INPUT_FLOWS: {
       if (header) {
         puts(
-          output == OUTPUT_TAB ? "flow\tproto\tsrc_ip\t\tdst_ip\t\tsport\tdport" :
-          output == OUTPUT_CSV ? "flow,proto,src_ip,dst_ip,sport,dport" : NULL
+          output == OUTPUT_TAB ? "flow\tproto\tsrc_ip\t\tdst_ip\t\tsport\tdport,..." :
+          output == OUTPUT_CSV ? "flow,proto,src_ip,dst_ip,sport,dport,..." : NULL
         );
       }
       u_int32_t index = 0;
@@ -94,9 +95,25 @@ int main(int argc, char ** argv) {
           inet_ntop(AF_INET,&src_ip,src,sizeof(src));
           inet_ntop(AF_INET,&dst_ip,dst,sizeof(dst));
           if (!format) format =
-            output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\n" :
-            output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u\n" : NULL;
-          printf(format,offset+index++,proto,src,dst,src_port,dst_port);
+            output == OUTPUT_TAB ? "%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
+            output == OUTPUT_CSV ? "%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
+          char *proto_str = proto_name(proto);
+          char *desc = "";
+          switch (proto) {
+            case IP_PROTO_ICMP: {
+              u_int8_t tyco = ntohs(dst_port);
+              desc = icmp_desc(tyco >> 8,tyco & 0xff);
+              break;
+            }
+            case IP_PROTO_TCP:
+            case IP_PROTO_UDP:
+              desc = pair_desc(proto,src_port,dst_port);
+              break;
+          }
+          printf(format,
+            offset+index++,
+            proto,src,dst,src_port,dst_port,proto_str,desc
+          );
         }
         // TODO: detect trailing partial record.
         if (ferror(file))

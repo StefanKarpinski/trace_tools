@@ -12,14 +12,18 @@ INCLUDES = -Ihdr \
 LIBSDIR = -L$(USR)/lib
 LIBS = -lglib-2.0 -lpcap -lm
 
-src/%.o: src/%.c src/common.h
+src/flow_desc.c: types/flow_desc.rb \
+	types/icmp_types.csv types/port_numbers.csv
+	ruby $^ > $@
+
+src/%.o: src/%.c src/common.h src/flow_desc.h
 	gcc $(OPTS) $(INCLUDES) -c $< -o $@
 
-bin/%: src/%.o src/common.o
+bin/%: src/%.o src/common.o src/flow_desc.o
 	gcc $(OPTS) $(INCLUDES) $^ -o $@ $(LIBSDIR) $(LIBS)
 
 clean:
-	rm -f $(PROGS) src/*.o
+	rm -f $(PROGS) src/*.o src/flow_desc.c
 
 .PRECIOUS: src/%.o
 
