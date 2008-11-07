@@ -1,0 +1,29 @@
+0,echo reply
+3,host unreachable
+4,source quench
+5,redirect
+6,alternate host address
+8,echo request
+9,router advertisement
+10,router solicitation
+11,time exceeded (TTL)
+11,time exceeded (frag)
+12,bad IP header
+13,timestamp
+14,timestamp reply
+15,info request
+16,info reply
+17,address mask request
+18,address mask reply
+30,traceroute info request
+31,datagram conversion error
+32,mobile host redirect
+33,where are you
+34,here I am
+35,mobile registration request
+36,mobile registration reply
+37,DNS request
+38,DNS reply
+39,SKIP discovery
+40,Photuris
+41,mobility (experimental)
