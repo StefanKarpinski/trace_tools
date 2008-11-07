@@ -40,19 +40,34 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
 
 #define IP4_SIZE(ip) ntohs(ip->ip_len)
 #define HAS_PORT(ip) (ip->ip_p==IP_PROTO_TCP||ip->ip_p==IP_PROTO_UDP)
-#define SRC_PORT(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0)))
-#define DST_PORT(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+2)))
-#define UDP_SIZE(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
-#define UDP_CKSM(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+6)))
-#define TCP_SQNO(ip) ntohl(*((u_int32_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
-#define TCP_AKNO(ip) ntohl(*((u_int32_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+8)))
 
-#define ICMP_TYPE(ip) (*(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0))
-#define ICMP_CODE(ip) (*(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+1))
-#define ICMP_TYCO(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0)))
-#define ICMP_CKSM(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+2)))
-#define ICMP_IDNO(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
-#define ICMP_SQNO(ip) ntohs(*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+6)))
+#define SRC_PORT_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0)))
+#define DST_PORT_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+2)))
+#define UDP_SIZE_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
+#define UDP_CKSM_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+6)))
+#define TCP_SQNO_RAW(ip) (*((u_int32_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
+#define TCP_AKNO_RAW(ip) (*((u_int32_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+8)))
+
+#define SRC_PORT(ip) ntohs(SRC_PORT_RAW(ip))
+#define DST_PORT(ip) ntohs(DST_PORT_RAW(ip))
+#define UDP_SIZE(ip) ntohs(UDP_SIZE_RAW(ip))
+#define UDP_CKSM(ip) ntohs(UDP_CKSM_RAW(ip))
+#define TCP_SQNO(ip) ntohl(TCP_SQNO_RAW(ip))
+#define TCP_AKNO(ip) ntohl(TCP_AKNO_RAW(ip))
+
+#define ICMP_TYPE_RAW(ip) (*(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0))
+#define ICMP_CODE_RAW(ip) (*(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+1))
+#define ICMP_TYCO_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+0)))
+#define ICMP_CKSM_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+2)))
+#define ICMP_IDNO_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+4)))
+#define ICMP_SQNO_RAW(ip) (*((u_int16_t*)(((char*)ip)+IP4_HEADER_UNIT*IP_HL(ip)+6)))
+
+#define ICMP_TYPE(ip) ICMP_TYPE_RAW(ip)
+#define ICMP_CODE(ip) ICMP_CODE_RAW(ip)
+#define ICMP_TYCO(ip) ntohs(ICMP_TYCO_RAW(ip))
+#define ICMP_CKSM(ip) ntohs(ICMP_CKSM_RAW(ip))
+#define ICMP_IDNO(ip) ntohs(ICMP_IDNO_RAW(ip))
+#define ICMP_SQNO(ip) ntohs(ICMP_SQNO_RAW(ip))
 
 #define TCP_URG(tcp) (tcp->th_flags & TH_URG)
 #define TCP_ACK(tcp) (tcp->th_flags & TH_ACK)
@@ -187,11 +202,11 @@ int main(int argc, char ** argv) {
         flow.src_ip = ip->ip_src.s_addr;
         flow.dst_ip = ip->ip_dst.s_addr;
         if (HAS_PORT(ip)) {
-          flow.src_port = SRC_PORT(ip);
-          flow.dst_port = DST_PORT(ip);
+          flow.src_port = SRC_PORT_RAW(ip);
+          flow.dst_port = DST_PORT_RAW(ip);
         } else {
-          flow.src_port = ICMP_IDNO(ip);
-          flow.dst_port = ICMP_TYCO(ip);
+          flow.src_port = ICMP_IDNO_RAW(ip);
+          flow.dst_port = ICMP_TYCO_RAW(ip);
         }
 
         flow_data *fd = g_hash_table_lookup(flow_hash,&flow);
@@ -204,7 +219,6 @@ int main(int argc, char ** argv) {
           fd->last_seqno = 0;
           if (ival == INFINITY)
             g_hash_table_insert(flow_hash,copy(flow),fd);
-          hton_flow(&flow);
           write_flow(flows,&flow);
         }
 
