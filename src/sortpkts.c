@@ -5,8 +5,8 @@
 #include "smoothsort.c"
 
 void swap_packets(void *m, size_t a, size_t b) {
-  struct packet_record *p = (struct packet_record *) m;
-  struct packet_record t = p[a];
+  packet_record *p = (packet_record *) m;
+  packet_record t = p[a];
   p[a] = p[b];
   p[b] = t;
 }
@@ -26,12 +26,12 @@ void swap_packets(void *m, size_t a, size_t b) {
     return cmp(p[a],p[b],c1,f1,c2,f2,c3,f3,c4,f4); \
   }
 
-declare_sorter(lt_flow_time,htonl,flow,htonl,sec,htonl,usec,htons,size)
-declare_sorter(lt_flow_size,htonl,flow,htons,size,htonl,sec,htonl,usec)
-declare_sorter(lt_time_flow,htonl,sec,htonl,usec,htonl,flow,htons,size)
-declare_sorter(lt_time_size,htonl,sec,htonl,usec,htons,size,htonl,flow)
-declare_sorter(lt_size_flow,htons,size,htonl,flow,htonl,sec,htonl,usec)
-declare_sorter(lt_size_time,htons,size,htonl,sec,htonl,usec,htonl,flow)
+declare_sorter(lt_flow_time,htonl,flow,htonl,sec ,htonl,usec,htons,size)
+declare_sorter(lt_flow_size,htonl,flow,htons,size,htonl,sec ,htonl,usec)
+declare_sorter(lt_time_flow,htonl,sec ,htonl,usec,htonl,flow,htons,size)
+declare_sorter(lt_time_size,htonl,sec ,htonl,usec,htons,size,htonl,flow)
+declare_sorter(lt_size_flow,htons,size,htonl,flow,htonl,sec ,htonl,usec)
+declare_sorter(lt_size_time,htons,size,htonl,sec ,htonl,usec,htonl,flow)
 
 #define SORT_FLOW 0
 #define SORT_TIME 1
@@ -93,7 +93,7 @@ int main(int argc, char ** argv) {
     fstat(fileno(file),&fs);
     u_int32_t n = fs.st_size / PACKET_RECORD_SIZE;
 
-    struct packet_record *packets = mmap(
+    packet_record *packets = mmap(
       0,
       fs.st_size,
       PROT_READ | PROT_WRITE,
