@@ -60,7 +60,7 @@ int main(int argc, char ** argv) {
     }
   }
   if (input == INPUT_UNKNOWN)
-    die("Please speficy input type: -f for flows or -p for packets.\n");
+    die("Please specify input type: -f for flows or -p for packets.\n");
   if (format) {
     format = strdup(format);
     c_unescape(format);
@@ -118,7 +118,7 @@ int main(int argc, char ** argv) {
           ntoh_packet(&packet);
           double time = packet.sec + packet.usec*1e-6;
           if (!format) format =
-            output == OUTPUT_TAB ? "%u\t%18.6f\t%u\n" :
+            output == OUTPUT_TAB ? "%u\t%17.6f\t%u\n" :
             output == OUTPUT_CSV ? "%u,%.6f,%u\n" : NULL;
           printf(format,offset+packet.flow,time,packet.size);
         }
