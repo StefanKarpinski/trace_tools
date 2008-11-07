@@ -7,12 +7,10 @@ our $input_type;
 our $offset = 0;
 
 use Getopt::Long;
-Getopt::Long::Configure ("bundling");
 GetOptions
-  '-f'   => sub { $input_type = 'f' },
-  '-p'   => sub { $input_type = 'p' },
-  '-o=i' => sub { $offset = int($_[1]) },
-  '-h'   => sub { scalar <> },
+  '-f' => sub { $input_type = 'f' },
+  '-p' => sub { $input_type = 'p' },
+  '-o' => sub { $offset = int($_[1]) }
 or exit(1);
 
 $input_type or

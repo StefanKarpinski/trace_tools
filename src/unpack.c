@@ -20,12 +20,11 @@ int main(int argc, char ** argv) {
   u_int8_t  input  = INPUT_UNKNOWN;
   u_int8_t  output = OUTPUT_TAB;
   char     *format = NULL;
-  u_int8_t  header = 0;
   u_int32_t offset = 0;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcF:ho:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcF:o:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -46,9 +45,6 @@ int main(int argc, char ** argv) {
       case 'F':
         format = optarg;
         break;
-      case 'h':
-        header = 1;
-        break;
 
       case 'o':
         offset = atoi(optarg);
@@ -64,22 +60,14 @@ int main(int argc, char ** argv) {
     }
   }
   if (input == INPUT_UNKNOWN)
-    die("Please specify input type: -f for flows or -p for packets.\n");
+    die("Please speficy input type: -f for flows or -p for packets.\n");
   if (format) {
-    if (header)
-      die("You cannot use a custom format (-F) and output a header (-h).\n");
     format = strdup(format);
     c_unescape(format);
   }
   
   switch (input) {
     case INPUT_FLOWS: {
-      if (header) {
-        puts(
-          output == OUTPUT_TAB ? "flow\tproto\tsrc_ip\t\tdst_ip\t\tsport\tdport,..." :
-          output == OUTPUT_CSV ? "flow,proto,src_ip,dst_ip,sport,dport,..." : NULL
-        );
-      }
       u_int32_t index = 0;
       if (optind == argc) argc++;
       for (i = optind; i < argc; i++) {
@@ -122,12 +110,6 @@ int main(int argc, char ** argv) {
       break;
     }
     case INPUT_PACKETS:
-      if (header) {
-        puts(
-          output == OUTPUT_TAB ? "flow\ttime\t\t\tsize" :
-          output == OUTPUT_CSV ? "flow,time,size" : NULL
-        );
-      }
       if (optind == argc) argc++;
       for (i = optind; i < argc; i++) {
         FILE *file = open_arg(argv[i]);
@@ -136,7 +118,7 @@ int main(int argc, char ** argv) {
           ntoh_packet(&packet);
           double time = packet.sec + packet.usec*1e-6;
           if (!format) format =
-            output == OUTPUT_TAB ? "%u\t%17.6f\t%u\n" :
+            output == OUTPUT_TAB ? "%u\t%18.6f\t%u\n" :
             output == OUTPUT_CSV ? "%u,%.6f,%u\n" : NULL;
           printf(format,offset+packet.flow,time,packet.size);
         }
