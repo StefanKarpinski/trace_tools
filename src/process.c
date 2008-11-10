@@ -205,7 +205,7 @@ int main(int argc, char ** argv) {
           flow.src_port = SRC_PORT_RAW(ip);
           flow.dst_port = DST_PORT_RAW(ip);
         } else {
-          flow.src_port = ICMP_IDNO_RAW(ip);
+          flow.src_port = ICMP_TYCO_RAW(ip); // ICMP_IDNO_RAW(ip);
           flow.dst_port = ICMP_TYCO_RAW(ip);
         }
 
