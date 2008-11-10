@@ -100,8 +100,8 @@ int main(int argc, char ** argv) {
           break;
         case INPUT_PACKETS:
           format =
-            output == OUTPUT_TAB ? "%s%u\t%17.6f\t%u\n" :
-            output == OUTPUT_CSV ? "%s%u,%.6f,%u\n" : NULL;
+            output == OUTPUT_TAB ? "%s%u\t%u.%06u\t%u\n" :
+            output == OUTPUT_CSV ? "%s%u,%u.%06u,%u\n" : NULL;
           break;
       }
     }
@@ -143,11 +143,11 @@ int main(int argc, char ** argv) {
         packet_record packet;
         while (read_packet(file,&packet)) {
           ntoh_packet(&packet);
-          double time = packet.sec + packet.usec*1e-6;
           printf(format,
             prefix ? prefix : "",
             offset+packet.flow,
-            time,
+            packet.sec,
+            packet.usec,
             packet.size
           );
         }

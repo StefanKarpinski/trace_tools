@@ -275,6 +275,10 @@ int main(int argc, char ** argv) {
         packet_record packet = {
           fd->index, info.ts.tv_sec, info.ts.tv_usec, size
         };
+        if (packet.usec >= 1000000) {
+          packet.sec += packet.usec / 1000000;
+          packet.usec = packet.usec % 1000000;
+        }
         hton_packet(&packet);
         write_packet(packets,&packet);
 
