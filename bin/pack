@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 our $delimiter = qr/(?:\s+|,)/;
-our $input_type;
+our $input_type = 'f';
 our $offset = 0;
 our $prefix = 0;
 
@@ -19,8 +19,6 @@ GetOptions
 or exit(1);
 
 $prefix = qr/^.*?$delimiter/ if $prefix == 1;
-$input_type or
-  die("Please speficy input type: -f for flows or -p for packets.\n");
 
 use Socket q[inet_aton];
 
@@ -28,6 +26,7 @@ if ($input_type eq 'f') {
   while (<>) {
     s/$prefix// if $prefix;
     my ($flow,$proto,$src,$dst,$sport,$dport) = split /(?:\s+|,)/;
+    goto packets if $proto == 0 or $proto > 255;
     $src = inet_aton $src;
     $dst = inet_aton $dst;
     print(pack('ca4a4nn',$proto,$src,$dst,$sport,$dport));
@@ -35,6 +34,7 @@ if ($input_type eq 'f') {
 } elsif ($input_type eq 'p') {
   while (<>) {
     s/$prefix// if $prefix;
+packets:
     my ($flow,$time,$size) = split /(?:\s+|,)/;
     my $sec  = int($time);
     my $usec = int(($time-$sec)*1e6);

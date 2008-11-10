@@ -67,8 +67,6 @@ int main(int argc, char ** argv) {
         return 1;
     }
   }
-  if (input == INPUT_UNKNOWN)
-    die("Please specify input type: -f for flows or -p for packets.\n");
   if (prefix && !format) {
     char *p = prefix;
     int len = strlen(p);
@@ -83,17 +81,32 @@ int main(int argc, char ** argv) {
     format = strdup(format);
     c_unescape(format);
   }
-  
-  switch (input) {
-    case INPUT_FLOWS: {
-      if (!format) format =
-        output == OUTPUT_TAB ? "%s%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
-        output == OUTPUT_CSV ? "%s%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
 
-      u_int32_t index = 0;
-      if (optind == argc) argc++;
-      for (i = optind; i < argc; i++) {
-        FILE *file = open_arg(argv[i]);
+  u_int32_t index = 0;
+  if (optind == argc) argc++;
+  for (i = optind; i < argc; i++) {
+    FILE *file = open_arg(argv[i]);
+    if (input == INPUT_UNKNOWN) {
+      char c = fgetc(file);
+      input = c ? INPUT_FLOWS : INPUT_PACKETS;
+      ungetc(c,file);
+    }
+    if (!format) {
+      switch (input) {
+        case INPUT_FLOWS:
+          format =
+            output == OUTPUT_TAB ? "%s%u\t%u\t%s\t%s\t%u\t%u\t%s\t%s\n" :
+            output == OUTPUT_CSV ? "%s%u,%u,%s,%s,%u,%u,%s,%s\n" : NULL;
+          break;
+        case INPUT_PACKETS:
+          format =
+            output == OUTPUT_TAB ? "%s%u\t%17.6f\t%u\n" :
+            output == OUTPUT_CSV ? "%s%u,%.6f,%u\n" : NULL;
+          break;
+      }
+    }
+    switch (input) {
+      case INPUT_FLOWS: {
         flow_record flow;
         while (read_flow(file,&flow)) {
           ntoh_flow(&flow);
@@ -124,19 +137,9 @@ int main(int argc, char ** argv) {
             desc ? desc : unknown
           );
         }
-        fclose(file);
-        wait(NULL);
+        break;
       }
-      break;
-    }
-    case INPUT_PACKETS: {
-      if (!format) format =
-        output == OUTPUT_TAB ? "%s%u\t%17.6f\t%u\n" :
-        output == OUTPUT_CSV ? "%s%u,%.6f,%u\n" : NULL;
-
-      if (optind == argc) argc++;
-      for (i = optind; i < argc; i++) {
-        FILE *file = open_arg(argv[i]);
+      case INPUT_PACKETS: {
         packet_record packet;
         while (read_packet(file,&packet)) {
           ntoh_packet(&packet);
@@ -148,11 +151,11 @@ int main(int argc, char ** argv) {
             packet.size
           );
         }
-        fclose(file);
-        wait(NULL);
+        break;
       }
-      break;
     }
+    fclose(file);
+    wait(NULL);
   }
 
   return 0;
