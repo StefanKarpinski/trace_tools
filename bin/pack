@@ -4,7 +4,7 @@ use strict;
 use warnings;
 
 our $delimiter = qr/(?:\s+|,)/;
-our $input_type = 'f';
+our $input_type;
 our $offset = 0;
 our $prefix = 0;
 
@@ -22,11 +22,25 @@ $prefix = qr/^.*?$delimiter/ if $prefix == 1;
 
 use Socket q[inet_aton];
 
-if ($input_type eq 'f') {
+our $ip_octet = qr/(?:[0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])/;
+our $ip_regex = qr/$ip_octet\.$ip_octet\.$ip_octet\.$ip_octet/;
+
+if (!$input_type or $input_type eq 'f') {
   while (<>) {
     s/$prefix// if $prefix;
     my ($flow,$proto,$src,$dst,$sport,$dport) = split /(?:\s+|,)/;
-    goto packets if $proto == 0 or $proto > 255;
+    if (!$input_type and ($proto == 0 or $proto > 255)) {
+      $input_type = 'p';
+      goto packets;
+    } else {
+      $input_type = 'f';
+    }
+    $flow =~ /^\d+$/ or die "Invalid flow index: $flow\n";
+    $proto =~ /^\d+$/ or die "Invalid IP protocol number: $proto\n";
+    $src =~ /^$ip_regex$/ or die "Invalid IP address: $src";
+    $dst =~ /^$ip_regex$/ or die "Invalid IP address: $dst";
+    $sport =~ /^\d+$/ or die "Invalid port number: $sport\n";
+    $dport =~ /^\d+$/ or die "Invalid port number: $dport\n";
     $src = inet_aton $src;
     $dst = inet_aton $dst;
     print(pack('ca4a4nn',$proto,$src,$dst,$sport,$dport));
@@ -34,10 +48,12 @@ if ($input_type eq 'f') {
 } elsif ($input_type eq 'p') {
   while (<>) {
     s/$prefix// if $prefix;
-packets:
+  packets:
     my ($flow,$time,$size) = split /(?:\s+|,)/;
-    my $sec  = int($time);
-    my $usec = int(($time-$sec)*1e6);
+    $flow =~ /^\d+$/ or die "Invalid flow index: $flow\n";
+    $time =~ /^(\d+)(?:\.(\d+))?$/ or die "Invalid time: $time\n";
+    my ($sec,$usec) = ($1,$2);
+    $size =~ /^\d+$/ or die "Invalid packet size: $size\n";
     print(pack('NNNn',$flow-$offset,$sec,$usec,$size));
   }
 }
