@@ -91,7 +91,7 @@ int main(int argc, char ** argv) {
       die("fopen(\"%s\",\"r\"): %s\n",argv[i],errstr);
     struct stat fs;
     fstat(fileno(file),&fs);
-    u_int32_t n = fs.st_size / PACKET_RECORD_SIZE;
+    u_int32_t n = fs.st_size / sizeof(packet_record);
 
     packet_record *packets = mmap(
       0,

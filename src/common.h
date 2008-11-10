@@ -17,8 +17,6 @@
 #include "tcp.h"
 
 #define ETHERTYPE_IP   0x0008
-#define ETHERTYPE_ARP  0x0608
-#define ETHERTYPE_RARP 0x3508
 
 #define IP_PROTO_ICMP  1
 #define IP_PROTO_TCP   6
@@ -36,9 +34,6 @@
 
 #define errstr strerror(errno)
 #define g_hash_table_exists(h,x) g_hash_table_lookup_extended(h,x,NULL,NULL)
-
-#define FLOW_RECORD_SIZE 13
-#define PACKET_RECORD_SIZE 14
 
 // error handling
 
