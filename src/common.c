@@ -138,7 +138,21 @@ FILE *cmd_read(const char *arg, ...) {
   if (close(0)) die("close(0): %s\n",errstr);
   if (close(fd[0])) die("close(%u): %s\n",fd[0],errstr);
   if (dup2(fd[1],1) < 0) die("dup2(%u,1): %s\n",fd[1],errstr);
-  execvp(arg,&arg);
+
+  va_list var;
+  va_start(var,arg);
+  char *args[256];
+  args[0] = arg;
+  int i;
+  for (i = 1; i <= sizeof(args); i++) {
+    args[i] = va_arg(var, char *);
+    if (!args[i]) break;
+  }
+  if (args[i])
+    die("Too many command-line arguments: %s\n",arg);
+  execvp(arg,args);
+  va_end(var);
+
   die("exec(%s,...): %s\n",arg,errstr);
 }
 
