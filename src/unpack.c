@@ -1,6 +1,54 @@
 #include "common.h"
 #include "flow_desc.h"
 
+// option globals
+static char *prefix  = NULL;
+static char *format  = NULL;
+static char *unknown = "";
+
+static u_int32_t offset = 0;
+
+static void print_flow(u_int32_t index, flow_record flow) {
+  ntoh_flow(&flow);
+  char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
+  inet_ntop(AF_INET,&flow.src_ip,src,sizeof(src));
+  inet_ntop(AF_INET,&flow.dst_ip,dst,sizeof(dst));
+  char *proto_str = proto_name(flow.proto);
+  char *desc = NULL;
+  switch (flow.proto) {
+    case IP_PROTO_ICMP: {
+      u_int8_t tyco = ntohs(flow.dst_port);
+      desc = icmp_desc(tyco >> 8,tyco & 0xff);
+      break;
+    }
+    case IP_PROTO_TCP:
+    case IP_PROTO_UDP:
+      desc = pair_desc(flow.proto,flow.src_port,flow.dst_port);
+      break;
+  }
+  printf(format,
+    prefix ? prefix : "",
+    offset + index,
+    flow.proto,
+    src, dst,
+    flow.src_port,
+    flow.dst_port,
+    proto_str ? proto_str : unknown,
+    desc ? desc : unknown
+  );
+}
+
+static void print_packet(packet_record packet) {
+  ntoh_packet(&packet);
+  printf(format,
+    prefix ? prefix : "",
+    offset + packet.flow,
+    packet.sec,
+    packet.usec,
+    packet.size
+  );
+}
+
 // intput types
 
 #define INPUT_UNKNOWN 0
@@ -19,10 +67,6 @@ int main(int argc, char ** argv) {
   // option variables
   u_int8_t  input   = INPUT_UNKNOWN;
   u_int8_t  output  = OUTPUT_TAB;
-  char     *prefix  = NULL;
-  char     *format  = NULL;
-  char     *unknown = "";
-  u_int32_t offset  = 0;
 
   // parse options, leave arguments
   int i;
@@ -108,49 +152,14 @@ int main(int argc, char ** argv) {
       case INPUT_FLOWS: {
         u_int32_t index = 0;
         flow_record flow;
-        while (read_flow(file,&flow)) {
-          ntoh_flow(&flow);
-          char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
-          inet_ntop(AF_INET,&flow.src_ip,src,sizeof(src));
-          inet_ntop(AF_INET,&flow.dst_ip,dst,sizeof(dst));
-          char *proto_str = proto_name(flow.proto);
-          char *desc = NULL;
-          switch (flow.proto) {
-            case IP_PROTO_ICMP: {
-              u_int8_t tyco = ntohs(flow.dst_port);
-              desc = icmp_desc(tyco >> 8,tyco & 0xff);
-              break;
-            }
-            case IP_PROTO_TCP:
-            case IP_PROTO_UDP:
-              desc = pair_desc(flow.proto,flow.src_port,flow.dst_port);
-              break;
-          }
-          printf(format,
-            prefix ? prefix : "",
-            offset+index++,
-            flow.proto,
-            src, dst,
-            flow.src_port,
-            flow.dst_port,
-            proto_str ? proto_str : unknown,
-            desc ? desc : unknown
-          );
-        }
+        while (read_flow(file,&flow))
+          print_flow(index++,flow);
         break;
       }
       case INPUT_PACKETS: {
         packet_record packet;
-        while (read_packet(file,&packet)) {
-          ntoh_packet(&packet);
-          printf(format,
-            prefix ? prefix : "",
-            offset+packet.flow,
-            packet.sec,
-            packet.usec,
-            packet.size
-          );
-        }
+        while (read_packet(file,&packet))
+          print_packet(packet);
         break;
       }
     }
