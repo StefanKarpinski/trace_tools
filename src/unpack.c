@@ -2,13 +2,13 @@
 #include "flow_desc.h"
 
 // option globals
-static char *prefix  = NULL;
-static char *format  = NULL;
+static char *prefix = NULL;
+static char *format = NULL;
 static char *unknown = "";
 
 static u_int32_t offset = 0;
-static u_int32_t head   = 0;
-static u_int32_t tail   = 0;
+static u_int32_t head = 0;
+static u_int32_t tail = 0;
 
 static void print_flow(u_int32_t index, flow_record flow) {
   ntoh_flow(&flow);
@@ -67,8 +67,8 @@ static void print_packet(packet_record packet) {
 int main(int argc, char ** argv) {
 
   // option variables
-  u_int8_t  input   = INPUT_UNKNOWN;
-  u_int8_t  output  = OUTPUT_TAB;
+  u_int8_t input = INPUT_UNKNOWN;
+  u_int8_t output = OUTPUT_TAB;
 
   // parse options, leave arguments
   int i;
@@ -124,6 +124,9 @@ int main(int argc, char ** argv) {
         return 1;
     }
   }
+  if (head && tail)
+    die("You cannot use -H and -T together.\n");
+
   if (prefix && !format) {
     char *p = prefix;
     int len = strlen(p);
@@ -138,8 +141,6 @@ int main(int argc, char ** argv) {
     format = strdup(format);
     c_unescape(format);
   }
-  if (head && tail)
-    die("You cannot use -H and -T together.\n");
 
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
