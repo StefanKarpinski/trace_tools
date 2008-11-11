@@ -8,6 +8,7 @@
 static char *prefix = NULL;
 static char *format = NULL;
 static char *unknown = "";
+int duplex = 0;
 
 static u_int32_t offset = 0;
 static u_int32_t head = 0;
@@ -45,11 +46,17 @@ static void print_flow(u_int32_t index, flow_record flow) {
 
 static void print_packet(packet_record packet) {
   ntoh_packet(&packet);
+  char *sign = duplex ? "+" : "";
+  if (duplex && packet.size > 0x7fff) {
+    packet.size = 0xffff - packet.size;
+    sign = "-";
+  }
   printf(format,
     prefix ? prefix : "",
     offset + packet.flow,
     packet.sec,
     packet.usec,
+    sign,
     packet.size
   );
 }
@@ -76,7 +83,7 @@ int main(int argc, char ** argv) {
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:I:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcDP:u:F:o:H:T:I:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -93,6 +100,9 @@ int main(int argc, char ** argv) {
       case 'c':
         output = OUTPUT_CSV;
         format = NULL;
+        break;
+      case 'D':
+        duplex = 1;
         break;
       case 'P':
         prefix = optarg;
@@ -168,8 +178,8 @@ int main(int argc, char ** argv) {
           break;
         case INPUT_PACKETS:
           format =
-            output == OUTPUT_TAB ? "%s%u\t%u.%06u\t%u\n" :
-            output == OUTPUT_CSV ? "%s%u,%u.%06u,%u\n" : NULL;
+            output == OUTPUT_TAB ? "%s%u\t%u.%06u\t%s%u\n" :
+            output == OUTPUT_CSV ? "%s%u,%u.%06u,%s%u\n" : NULL;
           break;
       }
     }

@@ -76,10 +76,14 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
 #define TCP_SYN(tcp) (tcp->th_flags & TH_SYN)
 #define TCP_FIN(tcp) (tcp->th_flags & TH_FIN)
 
-// macros for allocating and copying memory
+#define FLOW_INCOMING(f) \
+  (f.src_port < f.dst_port || f.src_port == f.dst_port && f.src_ip < f.dst_ip)
+
+// macros for allocating and copying & swapping things
 
 #define allocate(p) ((typeof(p)) malloc(sizeof(*p)))
 #define copy(x) ((typeof(x)*) memcpy(malloc(sizeof(x)),&(x),sizeof(x)))
+#define swap(x,y) {typeof(x) t = y; y = x; x = t;}
 
 // packet size types
 
@@ -100,10 +104,11 @@ int main(int argc, char ** argv) {
   u_int16_t min_size = 1;
   double max_ival = INFINITY;
   u_int8_t size_type = SIZE_PACKET;
+  int duplex = 0;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"f:p:F:s:i:PITA")) != -1) {
+  while ((i = getopt(argc,argv,"f:p:F:s:i:PITAD")) != -1) {
     switch (i) {
       case 'f':
         flow_file = optarg;
@@ -134,6 +139,10 @@ int main(int argc, char ** argv) {
         break;
       case 'A':
         size_type = SIZE_APPLICATION_DATA;
+        break;
+
+      case 'D':
+        duplex = 1;
         break;
 
       case '?':
@@ -198,6 +207,7 @@ int main(int argc, char ** argv) {
         if (eth->ether_type != ETHERTYPE_IP) continue;
         struct ip *ip = (struct ip *) (pkt + sizeof(*eth));
         
+        int incoming = 0;
         flow_record flow;
         flow.proto  = ip->ip_p;
         flow.src_ip = ip->ip_src.s_addr;
@@ -208,6 +218,11 @@ int main(int argc, char ** argv) {
         } else {
           flow.src_port = ICMP_TYCO_RAW(ip); // ICMP_IDNO_RAW(ip);
           flow.dst_port = ICMP_TYCO_RAW(ip);
+        }
+        if (duplex && FLOW_INCOMING(flow)) {
+          swap(flow.src_ip,flow.dst_ip);
+          swap(flow.src_port,flow.dst_port);
+          incoming = 1;
         }
 
         flow_data *fd = g_hash_table_lookup(flow_hash,&flow);
@@ -272,6 +287,8 @@ int main(int argc, char ** argv) {
         }
         if (size < min_size)
           continue; // ignore packet
+        if (incoming)
+          size = 0xffff - size;
 
         packet_record packet = {
           fd->index, info.ts.tv_sec, info.ts.tv_usec, size
