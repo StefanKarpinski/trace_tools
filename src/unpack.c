@@ -7,6 +7,7 @@ static char *format  = NULL;
 static char *unknown = "";
 
 static u_int32_t offset = 0;
+static u_int32_t head   = 0;
 
 static void print_flow(u_int32_t index, flow_record flow) {
   ntoh_flow(&flow);
@@ -70,7 +71,7 @@ int main(int argc, char ** argv) {
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -100,6 +101,12 @@ int main(int argc, char ** argv) {
 
       case 'o':
         offset = atoi(optarg);
+        break;
+
+      case 'H':
+        head = atoi(optarg);
+        if (head <= 0)
+          die("Number of `head' lines must be positive.\n");
         break;
 
       case '?':
@@ -152,14 +159,25 @@ int main(int argc, char ** argv) {
       case INPUT_FLOWS: {
         u_int32_t index = 0;
         flow_record flow;
-        while (read_flow(file,&flow))
-          print_flow(index++,flow);
+        if (head) {
+          for (; index < head && read_flow(file,&flow); index++)
+            print_flow(index,flow);
+        } else {
+          while (read_flow(file,&flow))
+            print_flow(index++,flow);
+        }
         break;
       }
       case INPUT_PACKETS: {
         packet_record packet;
-        while (read_packet(file,&packet))
-          print_packet(packet);
+        if (head) {
+          u_int32_t index = 0;
+          for (; index < head && read_packet(file,&packet); index++)
+            print_packet(packet);
+        } else {
+          while (read_packet(file,&packet))
+            print_packet(packet);
+        }
         break;
       }
     }
