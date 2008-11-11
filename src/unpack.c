@@ -8,6 +8,7 @@ static char *unknown = "";
 
 static u_int32_t offset = 0;
 static u_int32_t head   = 0;
+static u_int32_t tail   = 0;
 
 static void print_flow(u_int32_t index, flow_record flow) {
   ntoh_flow(&flow);
@@ -71,7 +72,7 @@ int main(int argc, char ** argv) {
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -108,6 +109,11 @@ int main(int argc, char ** argv) {
         if (head <= 0)
           die("Number of `head' lines must be positive.\n");
         break;
+      case 'T':
+        tail = atoi(optarg);
+        if (tail <= 0)
+          die("Number of `tail' lines must be positive.\n");
+        break;
 
       case '?':
         if (isprint(optopt))
@@ -132,6 +138,8 @@ int main(int argc, char ** argv) {
     format = strdup(format);
     c_unescape(format);
   }
+  if (head && tail)
+    die("You cannot use -H and -T together.\n");
 
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
@@ -163,6 +171,11 @@ int main(int argc, char ** argv) {
           for (; index < head && read_flow(file,&flow); index++)
             print_flow(index,flow);
         } else {
+          if (tail) {
+            if (fseek(file,-tail*sizeof(flow_record),SEEK_END))
+              die("fseek(%s): %s\n",argv[i],errstr);
+            index = ftell(file) / sizeof(flow_record);
+          }
           while (read_flow(file,&flow))
             print_flow(index++,flow);
         }
@@ -175,6 +188,10 @@ int main(int argc, char ** argv) {
           for (; index < head && read_packet(file,&packet); index++)
             print_packet(packet);
         } else {
+          if (tail) {
+            if (fseek(file,-tail*sizeof(packet_record),SEEK_END))
+              die("fseek(%s): %s\n",argv[i],errstr);
+          }
           while (read_packet(file,&packet))
             print_packet(packet);
         }
