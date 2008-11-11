@@ -142,7 +142,7 @@ FILE *cmd_read(const char *arg, ...) {
   va_list var;
   va_start(var,arg);
   char *args[256];
-  args[0] = arg;
+  args[0] = (char *) arg;
   int i;
   for (i = 1; i <= sizeof(args); i++) {
     args[i] = va_arg(var, char *);
