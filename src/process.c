@@ -93,11 +93,12 @@ gint flow_equal(gconstpointer a, gconstpointer b) {
 int main(int argc, char ** argv) {
 
   // option variables
-  char *filter       = NULL;
-  char *flow_file    = NULL;
-  char *packet_file  = NULL;
+  char *flow_file = NULL;
+  char *packet_file = NULL;
+
+  char *filter = NULL;
   u_int16_t min_size = 1;
-  double    max_ival = INFINITY;
+  double max_ival = INFINITY;
   u_int8_t size_type = SIZE_PACKET;
 
   // parse options, leave arguments
