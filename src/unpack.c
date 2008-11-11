@@ -1,3 +1,6 @@
+#include <sys/stat.h>
+#include <sys/mman.h>
+
 #include "common.h"
 #include "flow_desc.h"
 
@@ -69,10 +72,11 @@ int main(int argc, char ** argv) {
   // option variables
   u_int8_t input = INPUT_UNKNOWN;
   u_int8_t output = OUTPUT_TAB;
+  char *index_list = NULL;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:I:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -114,6 +118,9 @@ int main(int argc, char ** argv) {
         if (tail <= 0)
           die("Number of `tail' lines must be positive.\n");
         break;
+      case 'I':
+        index_list = optarg;
+        break;
 
       case '?':
         if (isprint(optopt))
@@ -126,6 +133,8 @@ int main(int argc, char ** argv) {
   }
   if (head && tail)
     die("You cannot use -H and -T together.\n");
+  if ((head || tail) && index_list)
+    die("You cannot use -I with -H or -T.\n");
 
   if (prefix && !format) {
     char *p = prefix;
@@ -171,6 +180,30 @@ int main(int argc, char ** argv) {
         if (head) {
           for (; index < head && read_flow(file,&flow); index++)
             print_flow(index,flow);
+        } else if (index_list) {
+          FILE *indices = open_arg(index_list);
+          struct stat fs;
+          fstat(fileno(file),&fs);
+          u_int32_t n = fs.st_size / sizeof(flow_record);
+          flow_record *flows = mmap(
+            0,
+            fs.st_size,
+            PROT_READ,
+            MAP_PRIVATE,
+            fileno(file),
+            0
+          );
+          for (;;) {
+            int r = fscanf(indices,"%u",&index);
+            if (r == EOF) break;
+            if (r != 1)
+              die("Bad flow index encountered.\n");
+            if (index < 0)
+              die("Flow index is negative: %u < 0.\n",index);
+            if (index >= n)
+              die("Flow index too large: %u > %u.\n",index,n-1);
+            print_flow(index,flows[index]);
+          }
         } else {
           if (tail) {
             if (fseek(file,-tail*sizeof(flow_record),SEEK_END))
@@ -188,6 +221,31 @@ int main(int argc, char ** argv) {
           u_int32_t index = 0;
           for (; index < head && read_packet(file,&packet); index++)
             print_packet(packet);
+        } else if (index_list) {
+          FILE *indices = open_arg(index_list);
+          struct stat fs;
+          fstat(fileno(file),&fs);
+          u_int32_t n = fs.st_size / sizeof(packet_record);
+          packet_record *packets = mmap(
+            0,
+            fs.st_size,
+            PROT_READ,
+            MAP_PRIVATE,
+            fileno(file),
+            0
+          );
+          for (;;) {
+            u_int32_t index;
+            int r = fscanf(indices,"%u",&index);
+            if (r == EOF) break;
+            if (r != 1)
+              die("Bad packet index encountered.\n");
+            if (index < 0)
+              die("Packet index is negative: %u < 0.\n",index);
+            if (index >= n)
+              die("Packet index too large: %u > %u.\n",index,n-1);
+            print_packet(packets[index]);
+          }
         } else {
           if (tail) {
             if (fseek(file,-tail*sizeof(packet_record),SEEK_END))
