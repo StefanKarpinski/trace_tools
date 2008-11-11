@@ -82,7 +82,6 @@ int main(int argc, char ** argv) {
     c_unescape(format);
   }
 
-  u_int32_t index = 0;
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
     FILE *file = open_arg(argv[i]);
@@ -107,6 +106,7 @@ int main(int argc, char ** argv) {
     }
     switch (input) {
       case INPUT_FLOWS: {
+        u_int32_t index = 0;
         flow_record flow;
         while (read_flow(file,&flow)) {
           ntoh_flow(&flow);
