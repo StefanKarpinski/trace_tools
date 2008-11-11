@@ -3,7 +3,7 @@ PROGS = bin/process bin/unpack bin/matrix bin/sortpkts
 
 default: $(PROGS)
 
-OPTS = -O3 -dead_strip
+OPTS = -O3
 INCLUDES = -Ihdr \
 	-I$(USR)/include \
 	-I$(USR)/include/glib-2.0 \
