@@ -146,9 +146,9 @@ int main(int argc, char ** argv) {
     }
   }
   if (!flow_file)
-    die("Please specify a flow file using -f <file>.");
+    die("Please specify a flow file using -f <file>.\n");
   if (!packet_file)
-    die("Please specify a packet file using -p <file>.");
+    die("Please specify a packet file using -p <file>.\n");
   
   // open flow & packet files for writing
   
