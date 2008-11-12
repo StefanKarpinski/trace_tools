@@ -2,15 +2,18 @@
 
 $map = Hash.new{|h,k| h[k] = Hash.new{|h,k| h[k] = []}}
 
-proto = { "tcp" => 6, "udp" => 17 }
+protocols = { "tcp" => 6, "udp" => 17 }
 while line = gets
   next if line =~ %r{^\s*(?:#|$)}
-  if line =~ %r{^(\S+)\s+(\d+)/(tcp|udp)\b}
+  if line =~ %r{^(\S+)\s+(\d+)(?:-(\d+))?\s*/\s*(tcp|udp)\b}
     desc = $1.downcase
-    port = Integer($2)
-    prot = proto[$3]
-    $map[port][prot] << desc unless
-    $map[port][prot].include?(desc)
+    port_lo = Integer($2)
+    port_hi = $3 ? Integer($3) : port_lo
+    proto = protocols[$4]
+    for port in port_lo..port_hi
+      $map[port][proto] << desc unless
+      $map[port][proto].include?(desc)
+    end
   end
 end
 
@@ -18,7 +21,8 @@ def override port, name, proto=nil
   if proto
     $map[port][proto] = name
   else
-    $map[port][6] = $map[port][17] = name
+    $map[port][6] = name
+    $map[port][17] = name
   end
 end
 
