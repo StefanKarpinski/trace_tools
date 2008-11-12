@@ -33,6 +33,13 @@ File.new(ARGV.shift).each_line do |line|
   end
 end
 
+rank = nil
+port_ranks = Hash.new
+File.new(ARGV.shift).each_with_index do |line,rank|
+  port = Integer(line.chomp)
+  port_ranks[rank] = port
+end
+
 print <<-__CODE__
 #line #{__LINE__} "#{__FILE__}"
 
@@ -103,21 +110,35 @@ print <<-__CODE__
   return NULL;
 }
 
+u_int32_t port_rank(u_int16_t port) {
+  switch (port) {
+__CODE__
+
+port_ranks.keys.sort.each do |rank|
+  print <<-__CODE__
+    case #{'%5u' % port_ranks[rank]}: return #{'%2u' % rank};
+  __CODE__
+end
+
+print <<-__CODE__
+  }
+  return #{rank+1} + port;
+}
+
 char *pair_desc(u_int8_t proto, u_int16_t src_port, u_int16_t dst_port) {
-  u_int16_t min_port, max_port;
-  if (src_port <= dst_port) {
-    min_port = src_port;
-    max_port = dst_port;
+  u_int16_t lo_port, hi_port;
+  if (port_rank(src_port) <= port_rank(dst_port)) {
+    lo_port = src_port;
+    hi_port = dst_port;
   } else {
-    min_port = dst_port;
-    max_port = src_port;
+    lo_port = dst_port;
+    hi_port = src_port;
   }
   char *desc;
-  desc = port_desc(proto,min_port);
+  desc = port_desc(proto,lo_port);
   if (desc) return desc;
-  desc = port_desc(proto,max_port);
+  desc = port_desc(proto,hi_port);
   if (desc) return desc;
   return NULL;
 }
-
 __CODE__
