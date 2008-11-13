@@ -4,7 +4,23 @@
 #include "common.h"
 #include "flow_desc.h"
 
+// intput types
+
+#define INPUT_UNKNOWN 0
+#define INPUT_FLOWS   1
+#define INPUT_PACKETS 2
+
+// output styles
+
+#define OUTPUT_BIN 0
+#define OUTPUT_TAB 1
+#define OUTPUT_CSV 2
+
+#define binary (output == OUTPUT_BIN)
+
 // option globals
+u_int8_t input = INPUT_UNKNOWN;
+u_int8_t output = OUTPUT_TAB;
 static char *prefix = NULL;
 static char *format = NULL;
 static char *unknown = "";
@@ -14,6 +30,8 @@ static u_int32_t head = 0;
 static u_int32_t tail = 0;
 
 static void print_flow(u_int32_t index, flow_record flow) {
+  if (binary)
+    return write_flow(stdout,&flow);
   ntoh_flow(&flow);
   char src[MAX_IP_LENGTH+1], dst[MAX_IP_LENGTH+1];
   inet_ntop(AF_INET,&flow.src_ip,src,sizeof(src));
@@ -44,6 +62,11 @@ static void print_flow(u_int32_t index, flow_record flow) {
 }
 
 static void print_packet(packet_record packet, u_int32_t flow) {
+  if (binary) {
+    if (flow != -1)
+      packet.flow = htonl(flow);
+    return write_packet(stdout,&packet);
+  }
   ntoh_packet(&packet);
   printf(format,
     prefix ? prefix : "",
@@ -54,30 +77,17 @@ static void print_packet(packet_record packet, u_int32_t flow) {
   );
 }
 
-// intput types
-
-#define INPUT_UNKNOWN 0
-#define INPUT_FLOWS   1
-#define INPUT_PACKETS 2
-
-// output styles
-
-#define OUTPUT_TAB 0
-#define OUTPUT_CSV 1
-
 // main processing loop
 
 int main(int argc, char ** argv) {
 
   // option variables
-  u_int8_t input = INPUT_UNKNOWN;
-  u_int8_t output = OUTPUT_TAB;
   char *flow_list = NULL;
   int reindex = 0;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:L:R")) != -1) {
+  while ((i = getopt(argc,argv,"fptcbF:P:u:o:H:T:L:R")) != -1) {
     switch (i) {
 
       case 'f':
@@ -95,14 +105,18 @@ int main(int argc, char ** argv) {
         output = OUTPUT_CSV;
         format = NULL;
         break;
+      case 'b':
+        output = OUTPUT_BIN;
+        format = NULL;
+        break;
+      case 'F':
+        format = optarg;
+        break;
       case 'P':
         prefix = optarg;
         break;
       case 'u':
         unknown = optarg;
-        break;
-      case 'F':
-        format = optarg;
         break;
 
       case 'o':
@@ -140,7 +154,10 @@ int main(int argc, char ** argv) {
   if ((head || tail) && flow_list)
     die("You cannot use -L with -H or -T.\n");
 
-  if (prefix && !format) {
+  if (format) {
+    format = strdup(format);
+    c_unescape(format);
+  } else if (prefix && !binary) {
     char *p = prefix;
     int len = strlen(p);
     prefix = malloc(len+2);
@@ -149,10 +166,6 @@ int main(int argc, char ** argv) {
       output == OUTPUT_TAB ? '\t' :
       output == OUTPUT_CSV ? ','  : '\0';
     prefix[len+1] = '\0';
-  }
-  if (format) {
-    format = strdup(format);
-    c_unescape(format);
   }
 
   if (optind == argc) argc++;
@@ -163,7 +176,7 @@ int main(int argc, char ** argv) {
       input = c ? INPUT_FLOWS : INPUT_PACKETS;
       ungetc(c,file);
     }
-    if (!format) {
+    if (!format && !binary) {
       switch (input) {
         case INPUT_FLOWS:
           format =
