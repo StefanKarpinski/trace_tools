@@ -33,11 +33,10 @@ File.new(ARGV.shift).each_line do |line|
   end
 end
 
-rank = nil
-port_ranks = Hash.new
-File.new(ARGV.shift).each_with_index do |line,rank|
+common_ports = Array.new
+File.new(ARGV.shift).each do |line|
   port = Integer(line.chomp)
-  port_ranks[rank] = port
+  common_ports << port
 end
 
 print <<-__CODE__
@@ -93,6 +92,7 @@ port_desc.keys.sort.each do |port|
       switch (proto) {
     __CODE__
     port_desc[port].keys.sort.each do |proto|
+      # TODO: merge cases with same return value
       print <<-__CODE__
         case #{'%2u' % proto}: return "#{port_desc[port][proto]}";
       __CODE__
@@ -114,9 +114,15 @@ u_int32_t port_rank(u_int16_t port) {
   switch (port) {
 __CODE__
 
-port_ranks.keys.sort.each do |rank|
+
+rank = nil
+common_ports.each_with_index do |port,rank|
+  desc = port_desc[port]
+  if desc.is_a?(Hash)
+    desc = desc.values.map{|v| v.split(%r{/})}.flatten.uniq.join('/')
+  end
   print <<-__CODE__
-    case #{'%5u' % port_ranks[rank]}: return #{'%2u' % rank};
+    case #{'%5u' % port}: return #{'%2u' % rank}; // #{desc}
   __CODE__
 end
 
