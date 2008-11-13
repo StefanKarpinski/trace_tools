@@ -72,11 +72,11 @@ int main(int argc, char ** argv) {
   // option variables
   u_int8_t input = INPUT_UNKNOWN;
   u_int8_t output = OUTPUT_TAB;
-  char *index_list = NULL;
+  char *flow_list = NULL;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:I:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:L:")) != -1) {
     switch (i) {
 
       case 'f':
@@ -118,8 +118,8 @@ int main(int argc, char ** argv) {
         if (tail <= 0)
           die("Number of `tail' lines must be positive.\n");
         break;
-      case 'I':
-        index_list = optarg;
+      case 'L':
+        flow_list = optarg;
         break;
 
       case '?':
@@ -133,8 +133,8 @@ int main(int argc, char ** argv) {
   }
   if (head && tail)
     die("You cannot use -H and -T together.\n");
-  if ((head || tail) && index_list)
-    die("You cannot use -I with -H or -T.\n");
+  if ((head || tail) && flow_list)
+    die("You cannot use -L with -H or -T.\n");
 
   if (prefix && !format) {
     char *p = prefix;
@@ -180,8 +180,7 @@ int main(int argc, char ** argv) {
         if (head) {
           for (; index < head && read_flow(file,&flow); index++)
             print_flow(index,flow);
-        } else if (index_list) {
-          FILE *indices = open_arg(index_list);
+        } else if (flow_list) {
           struct stat fs;
           fstat(fileno(file),&fs);
           u_int32_t n = fs.st_size / sizeof(flow_record);
@@ -193,6 +192,7 @@ int main(int argc, char ** argv) {
             fileno(file),
             0
           );
+          FILE *indices = open_arg(flow_list);
           for (;;) {
             int r = fscanf(indices,"%u",&index);
             if (r == EOF) break;
@@ -221,8 +221,7 @@ int main(int argc, char ** argv) {
           u_int32_t index = 0;
           for (; index < head && read_packet(file,&packet); index++)
             print_packet(packet);
-        } else if (index_list) {
-          FILE *indices = open_arg(index_list);
+        } else if (flow_list) {
           struct stat fs;
           fstat(fileno(file),&fs);
           u_int32_t n = fs.st_size / sizeof(packet_record);
@@ -234,17 +233,34 @@ int main(int argc, char ** argv) {
             fileno(file),
             0
           );
+          // verify that packets are sorted by flow
+          for (i = 0; i < 1000 & i < n-2; i++)
+            if (packets[i].flow > packets[i+1].flow)
+              die("Packet file must be sorted by flow when using -L.\n");
+
+          u_int32_t max_flow = ntohl(packets[n-1].flow);
+          FILE *flows = open_arg(flow_list);
           for (;;) {
-            u_int32_t index;
-            int r = fscanf(indices,"%u",&index);
+            u_int32_t flow;
+            int r = fscanf(flows,"%u",&flow);
             if (r == EOF) break;
             if (r != 1)
-              die("Bad packet index encountered.\n");
-            if (index < 0)
-              die("Packet index is negative: %u < 0.\n",index);
-            if (index >= n)
-              die("Packet index too large: %u > %u.\n",index,n-1);
-            print_packet(packets[index]);
+              die("Bad flow index encountered.\n");
+            if (flow < 0)
+              die("Flow index is negative: %u < 0.\n",flow);
+            if (flow > max_flow)
+              die("Flow index too large: %u > %u.\n",flow,max_flow);
+
+            // binary search for flow index in packet file
+            int64_t L = -1, R = n-1; // TODO: can we use u_int32_t?
+            while (L < R-1) {
+              // TODO: smarter guess at location -- use proportion of flows
+              // based on index; assume that flows have equal packet count.
+              u_int32_t M = (L + R)/2;
+              if (ntohl(packets[M].flow) < flow) L = M; else R = M;
+            }
+            while (packets[R].flow == htonl(flow))
+              print_packet(packets[R++]);
           }
         } else {
           if (tail) {
