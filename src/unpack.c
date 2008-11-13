@@ -43,11 +43,11 @@ static void print_flow(u_int32_t index, flow_record flow) {
   );
 }
 
-static void print_packet(packet_record packet) {
+static void print_packet(packet_record packet, u_int32_t flow) {
   ntoh_packet(&packet);
   printf(format,
     prefix ? prefix : "",
-    offset + packet.flow,
+    offset + (flow == -1 ? packet.flow : flow),
     packet.sec,
     packet.usec,
     packet.size
@@ -73,10 +73,11 @@ int main(int argc, char ** argv) {
   u_int8_t input = INPUT_UNKNOWN;
   u_int8_t output = OUTPUT_TAB;
   char *flow_list = NULL;
+  int reindex = 0;
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:L:")) != -1) {
+  while ((i = getopt(argc,argv,"fptcP:u:F:o:H:T:L:R")) != -1) {
     switch (i) {
 
       case 'f':
@@ -120,6 +121,9 @@ int main(int argc, char ** argv) {
         break;
       case 'L':
         flow_list = optarg;
+        break;
+      case 'R':
+        reindex = 1;
         break;
 
       case '?':
@@ -193,6 +197,7 @@ int main(int argc, char ** argv) {
             0
           );
           FILE *indices = open_arg(flow_list);
+          u_int32_t new_index = 0;
           for (;;) {
             int r = fscanf(indices,"%u",&index);
             if (r == EOF) break;
@@ -202,13 +207,14 @@ int main(int argc, char ** argv) {
               die("Flow index is negative: %u < 0.\n",index);
             if (index >= n)
               die("Flow index too large: %u > %u.\n",index,n-1);
-            print_flow(index,flows[index]);
+
+            print_flow(reindex ? new_index++ : index, flows[index]);
           }
         } else {
           if (tail) {
             if (fseek(file,-tail*sizeof(flow_record),SEEK_END))
               die("fseek(%s): %s\n",argv[i],errstr);
-            index = ftell(file) / sizeof(flow_record);
+            if (!reindex) index = ftell(file) / sizeof(flow_record);
           }
           while (read_flow(file,&flow))
             print_flow(index++,flow);
@@ -220,7 +226,7 @@ int main(int argc, char ** argv) {
         if (head) {
           u_int32_t index = 0;
           for (; index < head && read_packet(file,&packet); index++)
-            print_packet(packet);
+            print_packet(packet,-1);
         } else if (flow_list) {
           struct stat fs;
           fstat(fileno(file),&fs);
@@ -240,6 +246,7 @@ int main(int argc, char ** argv) {
 
           u_int32_t max_flow = ntohl(packets[n-1].flow);
           FILE *flows = open_arg(flow_list);
+          u_int32_t new_index = -1;
           for (;;) {
             u_int32_t flow;
             int r = fscanf(flows,"%u",&flow);
@@ -259,16 +266,20 @@ int main(int argc, char ** argv) {
               u_int32_t M = (L + R)/2;
               if (ntohl(packets[M].flow) < flow) L = M; else R = M;
             }
+            if (reindex && packets[R].flow == htonl(flow))
+              new_index++;
             while (packets[R].flow == htonl(flow))
-              print_packet(packets[R++]);
+              print_packet(packets[R++],new_index);
           }
         } else {
           if (tail) {
+            if (reindex)
+              die("Can't reindex flows in packet tail mode.\n");
             if (fseek(file,-tail*sizeof(packet_record),SEEK_END))
               die("fseek(%s): %s\n",argv[i],errstr);
           }
           while (read_packet(file,&packet))
-            print_packet(packet);
+            print_packet(packet,-1);
         }
         break;
       }
