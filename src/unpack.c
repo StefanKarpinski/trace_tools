@@ -216,8 +216,6 @@ int main(int argc, char ** argv) {
             if (r == EOF) break;
             if (r != 1)
               die("Bad flow index encountered.\n");
-            if (index < 0)
-              die("Flow index is negative: %u < 0.\n",index);
             if (index >= n)
               die("Flow index too large: %u > %u.\n",index,n-1);
 
@@ -266,8 +264,6 @@ int main(int argc, char ** argv) {
             if (r == EOF) break;
             if (r != 1)
               die("Bad flow index encountered.\n");
-            if (flow < 0)
-              die("Flow index is negative: %u < 0.\n",flow);
             if (flow > max_flow)
               die("Flow index too large: %u > %u.\n",flow,max_flow);
 
