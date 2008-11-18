@@ -223,9 +223,12 @@ int main(int argc, char ** argv) {
           }
         } else {
           if (tail) {
-            if (fseek(file,-tail*sizeof(flow_record),SEEK_END))
+            struct stat fs;
+            fstat(fileno(file),&fs);
+            u_int32_t n = fs.st_size / sizeof(flow_record);
+            index = n - tail;
+            if (fseek(file,index * sizeof(flow_record),SEEK_SET))
               die("fseek(%s): %s\n",argv[i],errstr);
-            if (!reindex) index = ftell(file) / sizeof(flow_record);
           }
           while (read_flow(file,&flow))
             print_flow(index++,flow);
@@ -284,7 +287,10 @@ int main(int argc, char ** argv) {
           if (tail) {
             if (reindex)
               die("Can't reindex flows in packet tail mode.\n");
-            if (fseek(file,-tail*sizeof(packet_record),SEEK_END))
+            struct stat fs;
+            fstat(fileno(file),&fs);
+            u_int32_t n = fs.st_size / sizeof(packet_record);
+            if (fseek(file,(n - tail) * sizeof(packet_record),SEEK_SET))
               die("fseek(%s): %s\n",argv[i],errstr);
           }
           while (read_packet(file,&packet))
