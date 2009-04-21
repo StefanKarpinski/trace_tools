@@ -57,7 +57,8 @@ static void print_flow(u_int32_t index, flow_record flow) {
     flow.src_port,
     flow.dst_port,
     proto_str ? proto_str : unknown,
-    desc ? desc : unknown
+    desc ? desc : unknown,
+    desc ? desc : proto_str ? proto_str : unknown
   );
 }
 
