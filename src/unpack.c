@@ -25,6 +25,8 @@ const char *usage =
   "\n"
   "Notes:\n"
   "  - You cannot mix flow and packet files in one invocation.\n"
+  "  - If neither -f nor -p is given, unpack will try to detect\n"
+  "    the correct mode from the format of the input steam.\n"
   "  - Binary output without other options is identical to input.\n"
   "    Thus, this mode is primarily useful for filtering data.\n"
   "  - The format of the flow index list is white-space text.\n"
