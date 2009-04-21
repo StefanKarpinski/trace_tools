@@ -1,3 +1,43 @@
+const char *usage =
+  "Usage:\n"
+  "  process [options] -f <flow file> -p <packet file> <trace files>\n"
+  "\n"
+  "  Parses PCAP trace files (plain, gzipped or bzipped, detected by\n"
+  "  extension) and reads the packet header data in them, producing\n"
+  "  a flow file and a packet file for the trace data it reads.\n"
+  "\n"
+  "Options:\n"
+  "  -F <string>   BPF filter expression for trace files\n"
+  "\n"
+  "  -s <integer>  Minimum packet size (default: 1)\n"
+  "  -i <float>    Maximum inter-packet interval (default: infinity)\n"
+  "\n"
+  "  -P            Output raw packet sizes (default)\n"
+  "  -I            Output IP payload sizes\n"
+  "  -T            Output transport (TCP/UDP) payload size\n"
+  "  -A            Output application data size\n"
+  "\n"
+  "Notes:\n"
+  "  - Flow and packet outputs are packed arrays of fixed-size records.\n"
+  "    All record members are stored in portable network byte-order.\n"
+  "  - Flow records are packed structs with these members:\n"
+  "      u_int8_t  proto;\n"
+  "      u_int32_t src_ip, dst_ip;\n"
+  "      u_int16_t src_port, dst_port;\n"
+  "    Flows are implicitly indexed by their order of appearance in the\n"
+  "    flow files, starting at zero.\n"
+  "  - Packet records are packed structs with these members:\n"
+  "      u_int32_t flow, sec, usec;\n"
+  "      u_int16_t size;\n"
+  "    The flow number is a zero-based index into the corresponding flow\n"
+  "    file; the sec and usec numbers are the seconds and microseconds\n"
+  "    since the epoch. The size is a number of bytes, with meaning that\n"
+  "    depends on which of the flags [PITA] was given.\n"
+  "  - Packets smaller than the minimum packet size are ignored.\n"
+  "  - Intervals larger than the maximum interval force further packets\n"
+  "    to be considered to belong to a new flow.\n"
+;
+
 #include "common.h"
 
 // flow data structures
@@ -103,7 +143,7 @@ int main(int argc, char ** argv) {
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"f:p:F:s:i:PITA")) != -1) {
+  while ((i = getopt(argc,argv,"f:p:F:s:i:PITAh")) != -1) {
     switch (i) {
       case 'f':
         flow_file = optarg;
@@ -136,6 +176,9 @@ int main(int argc, char ** argv) {
         size_type = SIZE_APPLICATION_DATA;
         break;
 
+      case 'h':
+        printf(usage);
+        return 0;
       case '?':
         if (isprint(optopt))
           fprintf(stderr,"Unknown option `-%c'.\n",optopt);

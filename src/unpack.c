@@ -1,3 +1,40 @@
+const char *usage =
+  "Usage:\n"
+  "  unpack [options] <flow or packet files>\n"
+  "\n"
+  "  Dumps contents of flow or packet files in various formats.\n"
+  "\n"
+  "Options:\n"
+  "  -f            Interpret files as flow files\n"
+  "  -p            Interpret files as packet files\n"
+  "\n"
+  "  -t            Output tab-separated data\n"
+  "  -c            Output CSV data\n"
+  "  -b            Output binary\n"
+  "  -F <string>   Custom fprintf output format\n"
+  "\n"
+  "  -P <string>   String to prefix every output line with\n"
+  "  -u <string>   String to use for unknown type descriptions\n"
+  "  -o <integer>  Offset for flow indices; zero-based flow\n"
+  "                indices are added to this (default: 0)\n"
+  "\n"
+  "  -H <integer>  Number of head lines to output\n"
+  "  -T <integer>  Number of tail lines to output\n"
+  "  -L <file>     File with indices of flows to output\n"
+  "  -R            Reindex the flows\n"
+  "\n"
+  "Notes:\n"
+  "  - You cannot mix flow and packet files in one invocation.\n"
+  "  - Binary output without other options is identical to input.\n"
+  "    Thus, this mode is primarily useful for filtering data.\n"
+  "  - The format of the flow index list is white-space text.\n"
+  "  - Packet files must be sorted by flow in packet list mode.\n"
+  "  - Flow reindexing is primarily so that you can filter flow\n"
+  "    and packet files and keep the outputs in sync.\n"
+  "  - Flow reindexing does not work in packet tail mode.\n"
+  "  - Head, tail and list modes are mutually exclusive.\n"
+;
+
 #include <sys/stat.h>
 #include <sys/mman.h>
 
@@ -88,7 +125,7 @@ int main(int argc, char ** argv) {
 
   // parse options, leave arguments
   int i;
-  while ((i = getopt(argc,argv,"fptcbF:P:u:o:H:T:L:R")) != -1) {
+  while ((i = getopt(argc,argv,"fptcbF:P:u:o:H:T:L:Rh")) != -1) {
     switch (i) {
 
       case 'f':
@@ -141,6 +178,9 @@ int main(int argc, char ** argv) {
         reindex = 1;
         break;
 
+      case 'h':
+        printf(usage);
+        return 0;
       case '?':
         if (isprint(optopt))
           fprintf(stderr,"Unknown option `-%c'.\n",optopt);

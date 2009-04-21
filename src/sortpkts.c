@@ -1,3 +1,19 @@
+const char *usage =
+  "Usage:\n"
+  "  sortpkts [options] <packet files>\n"
+  "  \n"
+  "  Sorts packet files by flow, time or size in the order that\n"
+  "  options are given. Default: sort by flow, time then size.\n"
+  "  Packet files are sorted in-place.\n"
+  "\n"
+  "Options:\n"
+  "  -f  Sort by flow index\n"
+  "  -t  Sort by packet timestamp\n"
+  "  -s  Sort by packet size\n"
+  "\n"
+  "  -p  Sort files in parallel (fork for each argument)\n"
+;
+
 #include <sys/stat.h>
 #include <sys/mman.h>
 
@@ -56,7 +72,7 @@ int main(int argc, char ** argv) {
   int parallel = 0;
 
   int i;
-  while ((i = getopt(argc,argv,"ftsp")) != -1) {
+  while ((i = getopt(argc,argv,"ftsph")) != -1) {
     switch (i) {
 
       case 'f': SET_SORT(m--,SORT_FLOW); break;
@@ -65,6 +81,9 @@ int main(int argc, char ** argv) {
 
       case 'p': parallel = 1; break;
 
+      case 'h':
+        printf(usage);
+        return 0;
       case '?':
         if (isprint(optopt))
           fprintf(stderr,"Unknown option `-%c'.\n",optopt);
