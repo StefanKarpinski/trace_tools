@@ -236,10 +236,23 @@ int main(int argc, char ** argv) {
     if (pcap) {
       const u_char *pkt;
       struct pcap_pkthdr info;
+      int datalink_type = pcap_datalink(pcap);
       while (pkt = pcap_next(pcap,&info)) {
-        struct ether_header *eth = (struct ether_header *) pkt;
-        if (eth->ether_type != ETHERTYPE_IP) continue;
-        struct ip *ip = (struct ip *) (pkt + sizeof(*eth));
+        struct ip *ip;
+        switch (datalink_type) {
+          case DLT_EN10MB: {
+            struct ether_header *eth = (struct ether_header *) pkt;
+            if (eth->ether_type != ETHERTYPE_IP) continue;
+            ip = (struct ip *) (pkt + sizeof(*eth));
+            break;
+          }
+          default:
+            die("Trace unsupported data link type %d (%s: %s).\n",
+              datalink_type,
+              pcap_datalink_val_to_name(datalink_type),
+              pcap_datalink_val_to_description(datalink_type)
+            );
+        }
         
         flow_record flow;
         flow.proto  = ip->ip_p;
