@@ -284,8 +284,7 @@ int main(int argc, char ** argv) {
                 size = UDP_SIZE(ip) - UDP_HEADER_SIZE;
                 break;
               case IP_PROTO_TCP: {
-                struct tcphdr *tcp = (struct tcphdr *)
-                  (pkt + sizeof(*eth) + IP4_HEADER_UNIT * IP_HL(ip));
+                struct tcphdr *tcp = (struct tcphdr *) (ip + IP4_HEADER_UNIT * IP_HL(ip));
                 size = IP4_SIZE(ip) - IP4_HEADER_UNIT * (IP_HL(ip) + TH_OFF(tcp));
                 if (size_type == SIZE_APPLICATION_DATA) {
                   // TODO: verify correctness of TCP app data logic.
