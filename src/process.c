@@ -250,6 +250,8 @@ int main(int argc, char ** argv) {
             ip = (struct ip *) (pkt + sizeof(*eth));
             break;
           }
+          // NOTE: to support a new datalink type, just add a case
+          // here that correctly extracts the IP pointer from it.
           default:
             die("Trace unsupported data link type %d (%s: %s).\n",
               datalink_type,
