@@ -240,6 +240,10 @@ int main(int argc, char ** argv) {
       while (pkt = pcap_next(pcap,&info)) {
         struct ip *ip;
         switch (datalink_type) {
+          case DLT_RAW: {
+            ip = (struct ip *) pkt;
+            break;
+          }
           case DLT_EN10MB: {
             struct ether_header *eth = (struct ether_header *) pkt;
             if (eth->ether_type != ETHERTYPE_IP) continue;
