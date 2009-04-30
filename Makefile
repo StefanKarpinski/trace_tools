@@ -1,4 +1,4 @@
-USR = $(HOME)/usr
+USR = /opt/local
 PROGS = bin/process bin/unpack bin/matrix bin/sortpkts
 
 default: $(PROGS)
