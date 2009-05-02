@@ -18,8 +18,8 @@ const char *usage =
 
 #include "common.h"
 
-int size_max = 2;
-int ival_max = 2;
+int size_ps_max = 2;
+int ival_ps_max = 2;
 
 char *delimiter = ",";
 
@@ -39,10 +39,10 @@ void parse_opts(int argc, char **argv) {
   while ((c = getopt_long(argc,argv,"Z::V::ctd:h",longopts,0)) != -1) {
     switch (c) {
       case 'Z':
-        size_max = atoi(optarg);
+        size_ps_max = atoi(optarg);
         break;
       case 'V':
-        ival_max = atoi(optarg);
+        ival_ps_max = atoi(optarg);
         break;
 
       case 'c':
@@ -83,11 +83,11 @@ long double *ival_ps;
 void update() {
   int i;
   packets++;
-  for (i = 0; i < size_max; i++)
+  for (i = 0; i < size_ps_max; i++)
     size_ps[i] += power(packet.size,i+1);
   if (packet.flow != last_flow) return;
   double interval = packet_time - last_time;
-  for (i = 0; i < ival_max; i++)
+  for (i = 0; i < ival_ps_max; i++)
     ival_ps[i] += power(interval,i+1);
 }
 
@@ -96,18 +96,18 @@ void update() {
 void flush() {
   if (size_ps && ival_ps) {
     int i;
-    printf("%llu%s",packets,delim(size_max || ival_max));
-    for (i = 0; i < size_max; i++)
-      printf("%llu%s",size_ps[i],delim(i+1 < size_max || ival_max));
-    for (i = 0; i < ival_max; i++)
-      printf("%Le%s",ival_ps[i],delim(i+1 < ival_max));
+    printf("%llu%s",packets,delim(size_ps_max || ival_ps_max));
+    for (i = 0; i < size_ps_max; i++)
+      printf("%llu%s",size_ps[i],delim(i+1 < size_ps_max || ival_ps_max));
+    for (i = 0; i < ival_ps_max; i++)
+      printf("%Le%s",ival_ps[i],delim(i+1 < ival_ps_max));
     printf("\n");
 
-    memset(size_ps,0,size_max*sizeof(*size_ps));
-    memset(ival_ps,0,ival_max*sizeof(*ival_ps));
+    memset(size_ps,0,size_ps_max*sizeof(*size_ps));
+    memset(ival_ps,0,ival_ps_max*sizeof(*ival_ps));
   } else {
-    size_ps = (typeof(size_ps)) calloc(size_max,sizeof(*size_ps));
-    ival_ps = (typeof(ival_ps)) calloc(ival_max,sizeof(*ival_ps));
+    size_ps = (typeof(size_ps)) calloc(size_ps_max,sizeof(*size_ps));
+    ival_ps = (typeof(ival_ps)) calloc(ival_ps_max,sizeof(*ival_ps));
   }
   packets = 0;
 }
