@@ -11,6 +11,8 @@ const char *usage =
   "  -Z <integer>   Maximum size powersum (default: 2).\n"
   "  -V <integer>   Maximum interval powersum (default: 2).\n"
   "\n"
+  "  -m <integer>   Only output flows with this many packets.\n"
+  "\n"
   "  -c             CSV output.\n"
   "  -t             Tab-delimited output.\n"
   "  -d <string>    Custom-delimited output.\n"
@@ -22,6 +24,8 @@ const char *usage =
 int size_ps_max = 2;
 int ival_ps_max = 2;
 
+int min_packets = 1;
+
 char *const comma = ",";
 char *const tab = "\t";
 
@@ -32,23 +36,28 @@ void parse_opts(int argc, char **argv) {
   delimiter = comma;
 
   static struct option longopts[] = {
-    { "sizes",     required_argument, 0, 'Z' },
-    { "intervals", required_argument, 0, 'V' },
-    { "csv",       no_argument,       0, 'c' },
-    { "tab",       no_argument,       0, 't' },
-    { "delimiter", required_argument, 0, 'd' },
-    { "help",      no_argument,       0, 'h' },
+    { "sizes",       required_argument, 0, 'Z' },
+    { "intervals",   required_argument, 0, 'V' },
+    { "min-packets", required_argument, 0, 'm' },
+    { "csv",         no_argument,       0, 'c' },
+    { "tab",         no_argument,       0, 't' },
+    { "delimiter",   required_argument, 0, 'd' },
+    { "help",        no_argument,       0, 'h' },
     { 0, 0, 0, 0 }
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"Z::V::ctd:h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"Z::V::m:ctd:h",longopts,0)) != -1) {
     switch (c) {
       case 'Z':
         size_ps_max = atoi(optarg);
         break;
       case 'V':
         ival_ps_max = atoi(optarg);
+        break;
+
+      case 'm':
+        min_packets = atoi(optarg);
         break;
 
       case 'c':
@@ -102,14 +111,15 @@ void update() {
 
 void flush() {
   if (size_ps && ival_ps) {
-    int i;
-    printf("%llu%s",packets,delim(size_ps_max || ival_ps_max));
-    for (i = 0; i < size_ps_max; i++)
-      printf("%llu%s",size_ps[i],delim(i+1 < size_ps_max || ival_ps_max));
-    for (i = 0; i < ival_ps_max; i++)
-      printf("%Le%s",ival_ps[i],delim(i+1 < ival_ps_max));
-    printf("\n");
-
+    if (packets >= min_packets) {
+      int i;
+      printf("%llu%s",packets,delim(size_ps_max || ival_ps_max));
+      for (i = 0; i < size_ps_max; i++)
+        printf("%llu%s",size_ps[i],delim(i+1 < size_ps_max || ival_ps_max));
+      for (i = 0; i < ival_ps_max; i++)
+        printf("%Le%s",ival_ps[i],delim(i+1 < ival_ps_max));
+      printf("\n");
+    }
     memset(size_ps,0,size_ps_max*sizeof(*size_ps));
     memset(ival_ps,0,ival_ps_max*sizeof(*ival_ps));
   } else {
