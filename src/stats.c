@@ -63,7 +63,8 @@ void parse_opts(int argc, char **argv) {
 
       case 'h':
         printf(usage);
-        return;
+        exit(0);
+
       case '?':
         if (isprint(optopt))
           die("Unknown option `-%c'.\n",optopt);
