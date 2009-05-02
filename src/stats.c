@@ -22,9 +22,14 @@ const char *usage =
 int size_ps_max = 2;
 int ival_ps_max = 2;
 
-char *delimiter = ",";
+char *const comma = ",";
+char *const tab = "\t";
+
+char *delimiter;
 
 void parse_opts(int argc, char **argv) {
+
+  delimiter = comma;
 
   static struct option longopts[] = {
     { "sizes",     required_argument, 0, 'Z' },
@@ -47,10 +52,10 @@ void parse_opts(int argc, char **argv) {
         break;
 
       case 'c':
-        delimiter = ",";
+        delimiter = comma;
         break;
       case 't':
-        delimiter = "\t";
+        delimiter = tab;
         break;
       case 'd':
         delimiter = optarg;
