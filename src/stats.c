@@ -10,6 +10,7 @@ const char *usage =
   "Options:\n"
   "  -Z <integer>   Maximum size powersum (default: 2).\n"
   "  -V <integer>   Maximum interval powersum (default: 2).\n"
+  "  -N <integer>   Shortcut for -Z<N> -V<N>.\n"
   "\n"
   "  -m <integer>   Only output flows with this many packets.\n"
   "\n"
@@ -46,6 +47,7 @@ void parse_opts(int argc, char **argv) {
   static struct option longopts[] = {
     { "sizes",       required_argument, 0, 'Z' },
     { "intervals",   required_argument, 0, 'V' },
+    { "number",      required_argument, 0, 'N' },
     { "min-packets", required_argument, 0, 'm' },
     { "indices",     no_argument,       0, 'I' },
     { "reindex",     no_argument,       0, 'R' },
@@ -58,13 +60,16 @@ void parse_opts(int argc, char **argv) {
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"Z::V::m:IRo:ctd:h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"Z:V:N:m:IRo:ctd:h",longopts,0)) != -1) {
     switch (c) {
       case 'Z':
         size_ps_max = atoi(optarg);
         break;
       case 'V':
         ival_ps_max = atoi(optarg);
+        break;
+      case 'N':
+        size_ps_max = ival_ps_max = atoi(optarg);
         break;
 
       case 'm':
