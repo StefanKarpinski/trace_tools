@@ -118,18 +118,18 @@ uint last_flow = 0xffff;
 double last_time = -INFINITY;
 
 long long packets, flow;
-unsigned long long *size_ps;
+long double *size_ps;
 long double *ival_ps;
 
 void update() {
   int i;
   packets++;
   for (i = 0; i < size_ps_max; i++)
-    size_ps[i] += pow(packet.size,i+1);
+    size_ps[i] += powl(packet.size,i+1);
   if (packet.flow != last_flow) return;
   double interval = packet_time - last_time;
   for (i = 0; i < ival_ps_max; i++)
-    ival_ps[i] += pow(interval,i+1);
+    ival_ps[i] += powl(interval,i+1);
 }
 
 #define delim(more) (more ? delimiter : "")
@@ -142,7 +142,7 @@ void flush() {
         printf("%lld%s",offset + (reindex ? flow++ : packet.flow),delim(1));
       printf("%llu%s",packets,delim(size_ps_max || ival_ps_max));
       for (i = 0; i < size_ps_max; i++)
-        printf("%llu%s",size_ps[i],delim(i+1 < size_ps_max || ival_ps_max));
+        printf("%Le%s",size_ps[i],delim(i+1 < size_ps_max || ival_ps_max));
       for (i = 0; i < ival_ps_max; i++)
         printf("%Le%s",ival_ps[i],delim(i+1 < ival_ps_max));
       printf("\n");
