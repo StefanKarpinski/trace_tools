@@ -27,6 +27,9 @@
 #ifndef INFINITY
 #define INFINITY (1.0/0.0)
 #endif
+#ifndef NAN
+#define NAN (0.0/0.0)
+#endif
 
 #define MAX_IP_LENGTH 15
 

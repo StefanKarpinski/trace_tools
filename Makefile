@@ -1,5 +1,5 @@
 USR = /opt/local
-PROGS = bin/process bin/unpack bin/matrix bin/sortpkts bin/stats
+PROGS = bin/process bin/unpack bin/matrix bin/sortpkts bin/stats bin/quantize
 
 default: $(PROGS)
 

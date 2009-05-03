@@ -106,8 +106,9 @@ void parse_opts(int argc, char **argv) {
           die("Unknown option `-%c'.\n",optopt);
         else
           die("Strange option `\\x%x'.\n",optopt);
+
       default:
-        die("getopt default.\n");
+        die("ERROR: getopt badness.\n");
     }
   }
 }
@@ -156,10 +157,10 @@ void flush() {
   packets = 0;
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, char **argv) {
+  int i;
   parse_opts(argc,argv);
   if (optind == argc) argc++;
-  int i;
   for (i = optind; i < argc; i++) {
     FILE *file = open_arg(argv[i]);
 
