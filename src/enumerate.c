@@ -32,8 +32,8 @@ void parse_opts(int argc, char **argv) {
   delimiter = comma;
 
   static struct option longopts[] = {
-    { "sizes",     required_argument, 0, 'Z' },
-    { "intervals", required_argument, 0, 'V' },
+    { "sizes",     optional_argument, 0, 'Z' },
+    { "intervals", optional_argument, 0, 'V' },
     { "csv",       no_argument,       0, 'c' },
     { "tab",       no_argument,       0, 't' },
     { "delimiter", required_argument, 0, 'd' },
@@ -47,11 +47,13 @@ void parse_opts(int argc, char **argv) {
 
       case 'Z':
         sizes = 1;
-        packets = atoi(optarg);
+        if (optarg)
+          packets = atoi(optarg);
         break;
       case 'V':
         intervals = 1;
-        packets = atoi(optarg);
+        if (optarg)
+          packets = atoi(optarg);
         break;
 
       case 'c':
