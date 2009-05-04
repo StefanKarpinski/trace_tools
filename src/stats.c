@@ -115,7 +115,7 @@ void parse_opts(int argc, char **argv) {
 
 packet_record packet;
 double packet_time;
-uint last_flow = 0xffff;
+long long last_flow = -1;
 double last_time = -INFINITY;
 
 long long packets, flow;
