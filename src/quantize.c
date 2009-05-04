@@ -2,14 +2,14 @@ const char *usage =
   "Usage:\n"
   "  quantize [options] <data files>\n"
   "\n"
-  "  Map numeric values to discrete indices from 1 to N.\n"
+  "  Map numeric values to discrete indices from 0 to N-1.\n"
   "\n"
   "Options:\n"
   "  -n <integer>   Number of quanization bins (default: 100).\n"
   "  -m <float>     Input range minimum (default: 0).\n"
   "  -M <float>     Input range maximum.\n"
   "  -p <float>     Power transform parameter (default: 1).\n"
-  "  -o <integer>   Output index offset (default: 1).\n"
+  "  -o <integer>   Output index offset (default: 0).\n"
   "\n"
 ;
 
@@ -18,7 +18,7 @@ const char *usage =
 int n = 100;
 long double min = 0;
 long double max = NAN;
-int offset = 1;
+int offset = 0;
 double power = 1;
 
 long long (*quantize)(long double) = NULL;
