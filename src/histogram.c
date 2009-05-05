@@ -30,12 +30,13 @@ void parse_opts(int argc, char **argv) {
     { "columns",   required_argument, 0, 'n' },
     { "offset",    required_argument, 0, 'o' },
     { "increment", required_argument, 0, 'i' },
+    { "multiple",  required_argument, 0, 'x' },
     { "help",      no_argument,       0, 'h' },
     { 0, 0, 0, 0 }
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"n:o:i:h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"n:o:i:x:h",longopts,0)) != -1) {
     switch (c) {
 
       case 'n':
@@ -48,6 +49,9 @@ void parse_opts(int argc, char **argv) {
         break;
       case 'i':
         inc = atoi(optarg);
+        break;
+      case 'x':
+        n = inc * atoi(optarg);
         break;
 
       case 'h':
