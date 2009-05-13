@@ -9,6 +9,8 @@ const char *usage =
   "  -n <integer>   The number of columns.\n"
   "  -o <integer>   Initial offset (default: 0).\n"
   "  -i <integer>   Offset increment (default: 0).\n"
+  "  -x <integer>   Set <n> to <x> times the <i> value.\n"
+  "  -D             Print dimensions in last row (zero value).\n"
   "\n"
   "Notes:\n"
   "  The number of columns is the maximum output column value.\n"
@@ -23,20 +25,22 @@ const char *usage =
 int n = 0;
 int offset = 0;
 int inc = 0;
+int print_dims = 0;
 
 void parse_opts(int argc, char **argv) {
 
   static struct option longopts[] = {
-    { "columns",   required_argument, 0, 'n' },
-    { "offset",    required_argument, 0, 'o' },
-    { "increment", required_argument, 0, 'i' },
-    { "multiple",  required_argument, 0, 'x' },
-    { "help",      no_argument,       0, 'h' },
+    { "columns",    required_argument, 0, 'n' },
+    { "offset",     required_argument, 0, 'o' },
+    { "increment",  required_argument, 0, 'i' },
+    { "multiple",   required_argument, 0, 'x' },
+    { "dimensions", no_argument,       0, 'D' },
+    { "help",       no_argument,       0, 'h' },
     { 0, 0, 0, 0 }
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"n:o:i:x:h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"n:o:i:x:Dh",longopts,0)) != -1) {
     switch (c) {
 
       case 'n':
@@ -52,6 +56,9 @@ void parse_opts(int argc, char **argv) {
         break;
       case 'x':
         n = inc * atoi(optarg);
+        break;
+      case 'D':
+        print_dims = 1;
         break;
 
       case 'h':
@@ -101,6 +108,8 @@ int main(int argc, char **argv) {
       }
       r++;
     }
+    if (print_dims)
+      printf("%llu,%u,0\n",r,n);
     fclose(file);
     wait(NULL);
   }
