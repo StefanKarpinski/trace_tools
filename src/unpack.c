@@ -11,7 +11,7 @@ const char *usage =
   "  -t            Output tab-separated data\n"
   "  -c            Output CSV data\n"
   "  -b            Output binary\n"
-  "  -F <string>   Custom fprintf output format\n"
+  "  -F <string>   Custom output format\n"
   "\n"
   "  -P <string>   String to prefix every output line with\n"
   "  -u <string>   String to use for unknown type descriptions\n"
