@@ -180,3 +180,21 @@ FILE *open_arg(const char *arg) {
   return file;
 }
 
+char *get_line(FILE *fh, char **pbuffer, size_t *plen) {
+#if defined(__MACOSX__) || defined(__APPLE__)
+  *pbuffer = fgetln(fh,plen);
+  if (ferror(fh))
+    die("Error reading line.\n");
+  return *pbuffer;
+#else
+  int r = getline(pbuffer,plen,fh);
+  if (r != -1) return *pbuffer;
+  if (feof(fh)) {
+    if (pbuffer) free(*pbuffer);
+    return *pbuffer = NULL;
+  } else if (ferror(fh)) {
+    die("Error reading line.\n");
+  }
+#endif
+  die("Error reading line: this shouldn't happen.\n");
+}

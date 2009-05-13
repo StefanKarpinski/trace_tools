@@ -110,9 +110,9 @@ int main(int argc, char **argv) {
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
     FILE *file = open_arg(argv[i]);
-    char *line;
+    char *line, *buffer = NULL;
     size_t length;
-    while (line = fgetln(file,&length)) {
+    while (line = get_line(file,&buffer,&length)) {
       for (;;) {
         int j, n = strcspn(line,"+-0123456789\n");
         for (j = 0; j < n; j++) putchar(*line++);

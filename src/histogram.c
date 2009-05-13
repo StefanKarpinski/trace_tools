@@ -88,9 +88,9 @@ int main(int argc, char **argv) {
   long long *hist = calloc(sizeof(long long),n);
   for (i = optind; i < argc; i++) {
     FILE *file = open_arg(argv[i]);
-    char *line;
+    char *line, *buffer = NULL;
     size_t length;
-    while (line = fgetln(file,&length)) {
+    while (line = get_line(file,&buffer,&length)) {
       int o = offset;
       for (;;) {
         line += strcspn(line,"+-0123456789\n");

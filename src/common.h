@@ -80,3 +80,4 @@ void c_unescape(char* s);
 void file_cloexec(FILE *file);
 FILE *cmd_read(const char *arg, ...);
 FILE *open_arg(const char *arg);
+char *get_line(FILE *, char **, size_t *);
