@@ -12,7 +12,7 @@ const char *usage =
   "  -V <integer>   Maximum interval powersum (default: 2).\n"
   "  -N <integer>   Shortcut for -Z<N> -V<N>.\n"
   "\n"
-  "  -m <integer>   Only output flows with this many packets.\n"
+  "  -m <integer>   Only output flows with minimum packets.\n"
   "\n"
   "  -I             Print flow indices.\n"
   "  -R             Reindex flows (imples -I).\n"
