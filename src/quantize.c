@@ -15,7 +15,7 @@ const char *usage =
 
 #include "common.h"
 
-int n = 100;
+int n = 0;
 long double min = 0;
 long double max = NAN;
 int offset = 0;
@@ -54,8 +54,8 @@ void parse_opts(int argc, char **argv) {
         max = atof(optarg);
         break;
       case 'p':
-        power = atof(optarg);
         quantize = quantize_power;
+        power = atof(optarg);
         break;
       case 'o':
         offset = atoi(optarg);
@@ -77,13 +77,13 @@ void parse_opts(int argc, char **argv) {
   }
 
   if (!quantize)
-    quantize = n || isfinite(min) || isfinite(max) ?
-      quantize_power : quantize_floor;
+    quantize = n > 0 ? quantize_power : quantize_floor;
 
   if (quantize != quantize_floor) {
     if (!n)
       die("You must specify the number of quantization bins.\n");
-    if (!isfinite(min) || !isfinite(max))
+    // TODO: better cross-platfrom finiteness test...
+    if (max == NAN)
       die("You must specify finite min and max values.\n");
     if (min >= max)
       die("Min value must be strictly less than max value.\n");
