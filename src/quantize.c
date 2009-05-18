@@ -21,10 +21,10 @@ long double max = NAN;
 int offset = 0;
 double power = 1;
 
-long long (*quantize)(long double) = NULL;
+long long (*quantize)(double) = NULL;
 
-long long quantize_floor(long double);
-long long quantize_power(long double);
+long long quantize_floor(double);
+long long quantize_power(double);
 
 void parse_opts(int argc, char **argv) {
 
@@ -90,14 +90,14 @@ void parse_opts(int argc, char **argv) {
   }
 }
 
-long long quantize_floor(long double v) {
+long long quantize_floor(double v) {
   long long q = floorl(v);
   if (0 < n && n <= q)
     q = n-1;
   return q;
 }
 
-long long quantize_power(long double v) {
+long long quantize_power(double v) {
   long long q = floorl(n*powl((v-min)/(max-min),power));
   if (q >= n) q = n-1;
   if (q < 0) q = 0;
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
           if (*line) putchar('\n');
           break;
         }
-        long double v = strtold(line,&line);
+        double v = strtod(line,&line);
         long long q = quantize(v);
         printf("%lld",offset+q);
       }
