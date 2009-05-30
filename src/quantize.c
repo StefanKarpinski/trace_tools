@@ -9,6 +9,7 @@ const char *usage =
   "  -m <float>     Input range minimum (default: 0).\n"
   "  -M <float>     Input range maximum.\n"
   "  -p <float>     Power transform parameter (default: 1).\n"
+  "  -l <float>     Apply logarithm base <b> first.\n"
   "  -o <integer>   Output index offset (default: 0).\n"
   "\n"
 ;
@@ -18,6 +19,7 @@ const char *usage =
 int n = 0;
 long double min = 0;
 long double max = NAN;
+int log_transform = 0;
 int offset = 0;
 double power = 1;
 
@@ -33,13 +35,14 @@ void parse_opts(int argc, char **argv) {
     { "min",    required_argument, 0, 'm' },
     { "max",    required_argument, 0, 'M' },
     { "power",  required_argument, 0, 'p' },
+    { "log",    no_argument,       0, 'l' },
     { "offset", required_argument, 0, 'o' },
     { "help",   no_argument,       0, 'h' },
     { 0, 0, 0, 0 }
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"n:m:M:p:o:h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"n:m:M:p:lo:h",longopts,0)) != -1) {
     switch (c) {
 
       case 'n':
@@ -56,6 +59,9 @@ void parse_opts(int argc, char **argv) {
       case 'p':
         quantize = quantize_power;
         power = atof(optarg);
+        break;
+      case 'l':
+        log_transform = 1;
         break;
       case 'o':
         offset = atoi(optarg);
@@ -78,15 +84,20 @@ void parse_opts(int argc, char **argv) {
 
   if (!quantize)
     quantize = n > 0 ? quantize_power : quantize_floor;
+  if (quantize == quantize_floor) return;
 
-  if (quantize != quantize_floor) {
-    if (!n)
-      die("You must specify the number of quantization bins.\n");
-    // TODO: better cross-platfrom finiteness test...
-    if (max == NAN)
-      die("You must specify finite min and max values.\n");
-    if (min >= max)
-      die("Min value must be strictly less than max value.\n");
+  if (!n)
+    die("You must specify the number of quantization bins.\n");
+  // TODO: better cross-platfrom finiteness test...
+  if (max == NAN)
+    die("You must specify finite min and max values.\n");
+  if (min >= max)
+    die("Min value must be strictly less than max value.\n");
+  if (log_transform) {
+    if (min <= 0)
+      die("Min value must be positive for log transform.\n");
+    min = log(min);
+    max = log(max);
   }
 }
 
@@ -98,6 +109,7 @@ long long quantize_floor(double v) {
 }
 
 long long quantize_power(double v) {
+  if (log_transform) v = log(v);
   long long q = floorl(n*powl((v-min)/(max-min),power));
   if (q >= n) q = n-1;
   if (q < 0) q = 0;
