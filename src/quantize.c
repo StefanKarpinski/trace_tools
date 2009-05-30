@@ -10,7 +10,7 @@ const char *usage =
   "  -M <float>     Input range maximum.\n"
   "  -p <float>     Power transform parameter (default: 1).\n"
   "  -l <float>     Apply logarithm base <b> first.\n"
-  "  -o <integer>   Output index offset (default: 0).\n"
+  "  -o <integer>   Output index offset (default: 1).\n"
   "\n"
 ;
 
@@ -20,7 +20,7 @@ int n = 0;
 long double min = 0;
 long double max = NAN;
 int log_transform = 0;
-int offset = 0;
+int offset = 1;
 double power = 1;
 
 long long (*quantize)(double) = NULL;
