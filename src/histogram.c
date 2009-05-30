@@ -7,8 +7,8 @@ const char *usage =
   "\n"
   "Options:\n"
   "  -n <integer>   The number of columns.\n"
-  "  -o <integer>   Initial offset (default: 0).\n"
-  "  -i <integer>   Offset increment (default: 0).\n"
+  "  -o <integer>   Offset to subtract (default: 1).\n"
+  "  -i <integer>   Per-item increment (default: 0).\n"
   "  -x <integer>   Set <n> to <x> times the <i> value.\n"
   "  -D             Print dimensions in last row (zero value).\n"
   "\n"
@@ -23,7 +23,7 @@ const char *usage =
 #include "common.h"
 
 int n = 0;
-int offset = 0;
+int offset = 1;
 int inc = 0;
 int print_dims = 0;
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
     char *line, *buffer = NULL;
     size_t length;
     while (line = get_line(file,&buffer,&length)) {
-      int o = offset;
+      long long j = -offset;
       for (;;) {
         line += strcspn(line,"+-0123456789\n");
         if (*line == '\n' || *line == '\0') {
@@ -103,8 +103,8 @@ int main(int argc, char **argv) {
           break;
         }
         long long c = strtoll(line,&line,10);
-        hist[(o + c) % n]++;
-        o += inc;
+        hist[(c + j) % n]++;
+        j += inc;
       }
       r++;
     }
