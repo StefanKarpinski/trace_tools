@@ -104,8 +104,6 @@ void parse_opts(int argc, char **argv) {
 
 long long quantize_floor(double v) {
   long long q = floorl(v);
-  if (0 < n && n <= q)
-    q = n-1;
   return q;
 }
 
