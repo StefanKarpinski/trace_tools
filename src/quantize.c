@@ -5,6 +5,8 @@ const char *usage =
   "  Map numeric values to discrete indices from 0 to N-1.\n"
   "\n"
   "Options:\n"
+  "  -L [<float>]   Stepped log quantization (base <b>, default: 10).\n"
+  "\n"
   "  -n <integer>   Number of quanization bins.\n"
   "  -m <float>     Input range minimum (default: 0).\n"
   "  -M <float>     Input range maximum.\n"
@@ -23,27 +25,30 @@ long double max = NAN;
 int log_transform = 0;
 int offset = 1;
 double power = 1;
+double base = 10;
 
 long long (*quantize)(double) = NULL;
 
 long long quantize_floor(double);
 long long quantize_power(double);
+long long quantize_steplog(double);
 
 void parse_opts(int argc, char **argv) {
 
   static struct option longopts[] = {
-    { "bins",   required_argument, 0, 'n' },
-    { "min",    required_argument, 0, 'm' },
-    { "max",    required_argument, 0, 'M' },
-    { "power",  required_argument, 0, 'p' },
-    { "log",    no_argument,       0, 'l' },
-    { "offset", required_argument, 0, 'o' },
-    { "help",   no_argument,       0, 'h' },
+    { "bins",    required_argument, 0, 'n' },
+    { "min",     required_argument, 0, 'm' },
+    { "max",     required_argument, 0, 'M' },
+    { "power",   required_argument, 0, 'p' },
+    { "log",     no_argument,       0, 'l' },
+    { "steplog", optional_argument, 0, 'L' },
+    { "offset",  required_argument, 0, 'o' },
+    { "help",    no_argument,       0, 'h' },
     { 0, 0, 0, 0 }
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"n:m:M:p:lo:h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"n:m:M:p:lL::o:h",longopts,0)) != -1) {
     switch (c) {
 
       case 'n':
@@ -63,6 +68,11 @@ void parse_opts(int argc, char **argv) {
         break;
       case 'l':
         log_transform = 1;
+        break;
+      case 'L':
+        quantize = quantize_steplog;
+        if (optarg)
+          base = atof(optarg);
         break;
       case 'o':
         offset = atoi(optarg);
@@ -85,7 +95,8 @@ void parse_opts(int argc, char **argv) {
 
   if (!quantize)
     quantize = n > 0 ? quantize_power : quantize_floor;
-  if (quantize == quantize_floor) return;
+
+  if (quantize != quantize_power) return;
 
   if (!n)
     die("You must specify the number of quantization bins.\n");
@@ -112,6 +123,13 @@ long long quantize_power(double v) {
   long long q = floorl(n*powl((v-min)/(max-min),power));
   if (q >= n) q = n-1;
   if (q < 0) q = 0;
+  return q;
+}
+
+long long quantize_steplog(double v) {
+  long long m = floorl(log(v)/log(base));
+  long long d = floorl(v/pow(base,m));
+  long long q = m*(base-1)+d-1;
   return q;
 }
 
