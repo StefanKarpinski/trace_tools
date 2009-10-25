@@ -98,7 +98,7 @@ void parse_opts(int argc, char **argv) {
         break;
 
       case 'h':
-        printf(usage);
+        printf("%s",usage);
         exit(0);
 
       case '?':

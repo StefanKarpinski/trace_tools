@@ -71,7 +71,7 @@ void parse_opts(int argc, char **argv) {
         break;
 
       case 'h':
-        printf(usage);
+        printf("%s",usage);
         exit(0);
 
       case '?':
@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
   long long r = 0;
   parse_opts(argc,argv);
   if (optind == argc) argc++;
-  long long *hist = calloc(sizeof(long long),n);
+  unsigned long long *hist = calloc(sizeof(unsigned long long),n);
   for (i = optind; i < argc; i++) {
     FILE *file = open_arg(argv[i]);
     char *line, *buffer = NULL;
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
           int c;
           for (c = 0; c < n; c++)
             if (hist[c])
-              printf("%llu,%u,%u\n",r+1,c+1,hist[c]);
+              printf("%llu,%u,%llu\n",r+1,c+1,hist[c]);
           memset(hist,0,n*sizeof(*hist));
           break;
         }

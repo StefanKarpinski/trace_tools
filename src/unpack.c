@@ -181,7 +181,7 @@ int main(int argc, char ** argv) {
         break;
 
       case 'h':
-        printf(usage);
+        printf("%s",usage);
         return 0;
       case '?':
         if (isprint(optopt))

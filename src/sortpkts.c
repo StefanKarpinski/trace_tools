@@ -82,7 +82,7 @@ int main(int argc, char ** argv) {
       case 'p': parallel = 1; break;
 
       case 'h':
-        printf(usage);
+        printf("%s",usage);
         return 0;
       case '?':
         if (isprint(optopt))
