@@ -1,7 +1,12 @@
 USR = /opt/local
 PROGS = \
-	bin/parse bin/unpack bin/sortpkts \
-	bin/stats bin/quantize bin/enumerate bin/histogram
+	bin/enumerate \
+	bin/histogram \
+	bin/parse \
+	bin/quantize \
+	bin/sortpkts \
+	bin/stats \
+	bin/unpack
 
 default: $(PROGS)
 
