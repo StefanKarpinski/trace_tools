@@ -1,6 +1,6 @@
 const char *usage =
   "Usage:\n"
-  "  process [options] -f <flow file> -p <packet file> <trace files>\n"
+  "  parse [options] -f <flow file> -p <packet file> <trace files>\n"
   "\n"
   "  Parses PCAP trace files (plain, gzipped or bzipped, detected by\n"
   "  extension) and reads the packet header data in them, producing\n"
@@ -212,7 +212,7 @@ int main(int argc, char ** argv) {
 
   if (optind == argc) argc++;
   for (i = optind; i < argc; i++) {
-    fprintf(stderr,"processing %s...\n",argv[i]);
+    fprintf(stderr,"parsing %s...\n",argv[i]);
     FILE *file = open_arg(argv[i]);
 
     char error[PCAP_ERRBUF_SIZE];
