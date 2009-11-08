@@ -65,7 +65,7 @@ void parse_opts(int argc, char **argv) {
 
 int main(int argc, char **argv) {
   parse_opts(argc,argv);
-  if (optind == argc) argc++;
+  if (optind == argc-1) argc++;
   int i = optind;
 
   char *packets_file = argv[i++];
