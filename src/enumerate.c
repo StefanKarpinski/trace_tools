@@ -43,7 +43,7 @@ void parse_opts(int argc, char **argv) {
   };
 
   int c;
-  while ((c = getopt_long(argc,argv,"Z::V::h",longopts,0)) != -1) {
+  while ((c = getopt_long(argc,argv,"Z::V::ctd:h",longopts,0)) != -1) {
     switch (c) {
 
       case 'Z':
