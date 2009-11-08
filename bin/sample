@@ -3,8 +3,8 @@
 use strict;
 use warnings;
 
-our $delimiter = ',';
 our $replace = 0;
+our $delimiter = ',';
 
 use Getopt::Long;
 Getopt::Long::Configure ("bundling");
