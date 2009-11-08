@@ -314,7 +314,7 @@ int main(int argc, char ** argv) {
               die("Flow index too large: %u > %u.\n",flow,max_flow);
 
             // binary search for flow index in packet file
-            int64_t L = -1, R = n-1; // TODO: can we use u_int32_t?
+            long long L = -1, R = n-1;
             while (L < R-1) {
               // TODO: smarter guess at location -- use proportion of flows
               // based on index; assume that flows have equal packet count.
