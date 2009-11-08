@@ -78,7 +78,7 @@ void parse_opts(int argc, char **argv) {
           die("Strange option `\\x%x'.\n",optopt);
 
       default:
-        die("ERROR: ; badness.\n");
+        die("ERROR: getopt badness.\n");
     }
   }
 

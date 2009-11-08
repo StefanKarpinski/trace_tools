@@ -196,5 +196,5 @@ char *get_line(FILE *fh, char **pbuffer, size_t *plen) {
     die("Error reading line.\n");
   }
 #endif
-  die("Error reading line: this shouldn't happen.\n");
+  die("ERROR: get_line badness.\n");
 }
