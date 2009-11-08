@@ -143,7 +143,7 @@ int main(int argc, char **argv) {
     size_t length;
     while (line = get_line(file,&buffer,&length)) {
       for (;;) {
-        int j, n = strcspn(line,"+-0123456789\n");
+        int j, n = strcspn(line,"+-0123456789.\n");
         for (j = 0; j < n; j++) putchar(*line++);
         if (*line == '\n' || *line == '\0') {
           if (*line) putchar('\n');
