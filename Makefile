@@ -5,6 +5,7 @@ PROGS = \
 	bin/parse \
 	bin/quantize \
 	bin/sortpkts \
+	bin/splice \
 	bin/stats \
 	bin/unpack
 
