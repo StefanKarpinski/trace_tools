@@ -11,6 +11,7 @@ Getopt::Long::Configure ("bundling");
 GetOptions
   '-r'   => sub { $replace = 1 },
   '-d=s' => sub { $delimiter = qr/\Q$_[1]\E/ },
+  '-s=i' => sub { srand $_[1] },
 or exit(1);
 
 while (<>) {
