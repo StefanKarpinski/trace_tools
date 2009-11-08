@@ -83,9 +83,9 @@ void parse_opts(int argc, char **argv) {
   }
 
   if (sizes && intervals)
-    die("You must choose to enumerate sizes or intervals.\n");
-  if (!sizes && !intervals)
     die("You can enumerate sizes or intervals, not both.\n");
+  if (!sizes && !intervals)
+    die("You must choose to enumerate sizes or intervals.\n");
 }
 
 int main(int argc, char **argv) {
