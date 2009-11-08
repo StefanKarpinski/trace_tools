@@ -14,7 +14,8 @@ INCLUDES = -Ihdr \
 LIBSDIR = -L$(USR)/lib
 LIBS = -lglib-2.0 -lpcap -lm
 
-src/flow_desc.c: types/flow_desc.rb \
+src/flow_desc.c: \
+	types/flow_desc.rb \
 	types/ip_protocols.csv \
 	types/icmp_types.csv   \
 	types/port_numbers.csv \
