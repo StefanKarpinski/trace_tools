@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
             if (last_flow >= 0) putchar('\n');
           } else {
             if (packet_no > 2) printf("%s", delimiter);
-            printf("%e", time - last_time);
+            printf("%0.7f", time - last_time);
           }
           last_time = time;
         }
