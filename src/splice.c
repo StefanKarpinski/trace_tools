@@ -106,11 +106,13 @@ int main(int argc, char **argv) {
     }
     if (intervals) {
       long long flow = -1;
-      double time = -INFINITY;
+      long long time_usec;
       while (line = get_line(values,&buffer,&length)) {
         for (;;) {
           if (flow != packets[p].flow) {
-            time = ntohl(packets[p].sec) + ntohl(packets[p].usec)*1e-6;
+            u_int32_t sec  = ntohl(packets[p].sec);
+            u_int32_t usec = ntohl(packets[p].usec);
+            time_usec = sec*1000000L + usec;
             flow = packets[p].flow;
             p++;
           }
@@ -118,9 +120,9 @@ int main(int argc, char **argv) {
           line += strcspn(line,"+-0123456789.\n");
           if (*line == '\n' || *line == '\0') break;
           double v = strtod(line,&line);
-          time += v;
-          u_int32_t sec = (u_int32_t) floorl(time);
-          u_int32_t usec = lroundl((time-sec)*1e6);
+          time_usec += llroundl(v*1e6);
+          u_int32_t sec  = (u_int32_t) (time_usec / 1000000L);
+          u_int32_t usec = (u_int32_t) (time_usec % 1000000L);
 
           if (p >= n) goto too_many_values;
           packets[p].sec  = htonl(sec);
