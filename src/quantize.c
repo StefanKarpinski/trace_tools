@@ -116,8 +116,7 @@ void parse_opts(int argc, char **argv) {
 }
 
 int quantize_floor(double v) {
-  int q = floor(v);
-  return q;
+  return floor(v);
 }
 
 int quantize_power(double v) {
