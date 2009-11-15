@@ -2,7 +2,9 @@ const char *usage =
   "Usage:\n"
   "  quantize [options] <data files>\n"
   "\n"
-  "  Map numeric values to discrete indices from 0 to N-1.\n"
+  "  Map numeric values to discrete indices from 1 to n.\n"
+  "  Strictly, the range is [0+offset,n+offset-1] but the\n"
+  "  offset value is 1 by default.\n"
   "\n"
   "Options:\n"
   "  -L [<float>]   Stepped log quantization (base <b>, default: 10).\n"
@@ -20,18 +22,18 @@ const char *usage =
 #include "common.h"
 
 int n = 0;
-long double min = 0;
-long double max = NAN;
+double min = 0;
+double max = NAN;
 int log_transform = 0;
 int offset = 1;
 double power = 1;
 double base = 10;
 
-long long (*quantize)(double) = NULL;
+int (*quantize)(double) = NULL;
 
-long long quantize_floor(double);
-long long quantize_power(double);
-long long quantize_steplog(double);
+int quantize_floor(double);
+int quantize_power(double);
+int quantize_steplog(double);
 
 void parse_opts(int argc, char **argv) {
 
@@ -113,23 +115,23 @@ void parse_opts(int argc, char **argv) {
   }
 }
 
-long long quantize_floor(double v) {
-  long long q = floorl(v);
+int quantize_floor(double v) {
+  int q = floor(v);
   return q;
 }
 
-long long quantize_power(double v) {
+int quantize_power(double v) {
   if (log_transform) v = log(v);
-  long long q = floorl(n*powl((v-min)/(max-min),power));
+  int q = floor(n*pow((v-min)/(max-min),power));
   if (q >= n) q = n-1;
   if (q < 0) q = 0;
   return q;
 }
 
-long long quantize_steplog(double v) {
-  long long m = floorl(log(v)/log(base));
-  long long d = floorl(v/pow(base,m));
-  long long q = m*(base-1)+d-1;
+int quantize_steplog(double v) {
+  int m = floor(log(v)/log(base));
+  int d = floor(v/pow(base,m));
+  int q = m*(base-1)+d-1;
   return q;
 }
 
@@ -143,15 +145,15 @@ int main(int argc, char **argv) {
     size_t length;
     while (line = get_line(file,&buffer,&length)) {
       for (;;) {
-        int j, n = strcspn(line,"+-0123456789.\n");
+        size_t j, n = strcspn(line,"+-0123456789.\n");
         for (j = 0; j < n; j++) putchar(*line++);
         if (*line == '\n' || *line == '\0') {
           if (*line) putchar('\n');
           break;
         }
         double v = strtod(line,&line);
-        long long q = quantize(v);
-        printf("%lld",offset+q);
+        int q = quantize(v);
+        printf("%d",offset+q);
       }
     }
     fclose(file);
