@@ -220,14 +220,14 @@ int main(int argc, char **argv) {
           case TRANS_DEQUANTIZE: {
             int q = strtol(line,&line,10);
             double v = dequantize(q-offset);
-            printf("%f",v);
+            printf("%0.7f",v);
             break;
           }
           case TRANS_FUZZ: {
             double v = strtod(line,&line);
             int q = quantize(v);
             double w = dequantize(q);
-            printf("%f",w);
+            printf("%0.7f",w);
             break;
           }
           default:
