@@ -1,0 +1,34 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+our $dir = '.';
+our $fmt = "%010u/packets";
+our $mod = 600;
+
+use Getopt::Long;
+Getopt::Long::Configure ("bundling");
+GetOptions
+  '-d=s' => sub { $dir = $_[1] },
+  '-F=s' => sub { $fmt = $_[1] },
+  '-m=i' => sub { $mod = int $_[1] },
+or exit(1);
+
+our $fh;
+our $last_bin;
+$/ = \14;
+while (<>) {
+  my ($flow,$sec,$usec,$size) = unpack 'NNNn', $_;
+  my $bin = int($sec/$mod)*$mod;
+  if (!$fh or $bin != $last_bin) {
+    my $file = sprintf "$dir/$fmt", $bin;
+    my $dir = $file;
+    $dir =~ s{/+[^/]+/*$}{};
+    # TODO: mkdir -p in perl would be faster...
+    system "mkdir -p '$dir'" and die $? unless -d $dir;
+    open $fh, '>>', $file or die $!;
+    $last_bin = $bin;
+  }
+  print $fh $_;
+}
