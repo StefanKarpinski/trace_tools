@@ -1,0 +1,30 @@
+#!/usr/bin/env perl
+
+use strict;
+use warnings;
+
+our $delimiter = ',';
+
+use Getopt::Long;
+Getopt::Long::Configure ("bundling");
+GetOptions
+  '-c'   => sub { $delimiter = "," },
+  '-t'   => sub { $delimiter = "\t" },
+  '-d=s' => sub { $delimiter = $_[1] },
+or exit(1);
+
+$/ = \13;
+our %pairs;
+our $id = 0;
+while (<>) {
+  my ($proto,$src,$dst,$sport,$dport) = unpack 'Ua4a4nn', $_;
+  if ($src le $dst or $src eq $dst and $sport < $dport) {
+    ($src,$dst) = ($dst,$src);
+    ($sport,$dport) = ($dport,$sport);
+  }
+  push @{$pairs{$proto,$src,$dst,$sport,$dport}}, $id++;
+  next unless @{$pairs{$proto,$src,$dst,$sport,$dport}} >= 2;
+  my @pair = @{delete $pairs{$proto,$src,$dst,$sport,$dport}};
+  print join($delimiter,@pair), "\n";
+}
+print "@{$_}\n" for values %pairs;
