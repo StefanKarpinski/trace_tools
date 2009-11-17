@@ -4,6 +4,7 @@ PROGS = \
 	bin/histogram \
 	bin/parse \
 	bin/quantize \
+	bin/reindex \
 	bin/sample \
 	bin/sortpkts \
 	bin/splice \
