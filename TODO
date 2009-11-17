@@ -1,0 +1,74 @@
+DUPLEX FLOWS
+
+Change file formats to store flows in full duplex:
+
+  - each flow entry corresponds to *two* flows
+    - the first-seen (node,port) pair comes first
+    - its "reverse" flow is mapped to the same entry 
+
+  - packet entries have signed packet sizes:
+    - positive sizes belong to the "forward" flow
+    - negative sizes belong to the "reverse" flow
+
+  - alternately, we could use negative flow indices
+    - its unclear if this would be better or not
+
+This should have several advantages:
+
+  - flow files will shrink by nearly a factor of two
+  - it will be simple to enumerate duplex flow packets
+  - a packet sort mode will still allow separating flows
+
+
+64-BIT STORAGE
+
+Allow using 64 bits for various potentially large values.
+
+  - the most immediate one would be flow ids so that more
+    than ~4.29 billion flows can be recorded
+  - quantize and histogram could also support 64-bit values
+  - it's unclear whether there's utility in using 64-bit
+    floating point values anywhere
+
+
+TIME VALUES
+
+Currently, time values are stored in an extravagant and
+wasteful 64 bits: 32 bits for seconds since the epoch and
+32 bits for microseconds in addition to that. This still
+rolls over in 2038 and wastes all but 17 bits in the micro-
+second part. It's also very difficiult to do computations
+with. A better storage format would be mircoseconds since
+the epoch. This would still take 64 bits to store, but it
+wouldn't roll over in 2038 and would be much easier to do
+arithmetic and comparisons with.
+
+To go with this, if one wants better precision---say nano-
+seconds---it should also be possible. Actually, doing the
+calculations, 2^64 nanoseconds in years is:
+
+  (2^64)/(365.24*24*60*60*1e9) = 584.558050417811...
+
+Therefore, we could, by default, use nanoseconds since the
+epoch for time values and still not roll over until the
+year 2554. Perhaps that's the best approach. I don't think
+that standard PCAP traces have better resolution than
+microseconds, but other trace formats do, and PCAP might
+in the future. Can't really hurt to be able to handle it.
+
+
+UNPACK
+
+Currently the unpack tool does too many things. It reads
+and prints values in various forms. It does so for both
+packet files and flow files. It also can select out flows
+and packets by index lists from the files, optionally re-
+indexing the packet flow indices as it goes. This is in-
+sanity! And it can output flows and packets in the same
+binary format it reads them in. Accordingly, unpack ought
+to be split into at least two programs. One should *only*
+pretty-print packet and flow data. Another program should
+slice and dice packet and/or flow files, always printing
+them out in binary format. If one then wants to pretty-
+print that data, simply pipe it to the simple unpack
+program. That's much more in line with the UNIX approach.
