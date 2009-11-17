@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
           line += strcspn(line,"+-0123456789.\n");
           if (*line == '\n' || *line == '\0') break;
           double v = strtod(line,&line);
-          time_usec += llroundl(v*1e6);
+          time_usec += llround(v*1e6);
           u_int32_t sec  = (u_int32_t) (time_usec / 1000000L);
           u_int32_t usec = (u_int32_t) (time_usec % 1000000L);
 
