@@ -5,6 +5,7 @@ use warnings;
 
 our $delimiter = ',';
 
+use Socket q[inet_ntoa];
 use Getopt::Long;
 Getopt::Long::Configure ("bundling");
 GetOptions
@@ -22,9 +23,16 @@ while (<>) {
     ($src,$dst) = ($dst,$src);
     ($sport,$dport) = ($dport,$sport);
   }
-  push @{$pairs{$proto,$src,$dst,$sport,$dport}}, $id++;
-  next unless @{$pairs{$proto,$src,$dst,$sport,$dport}} >= 2;
-  my @pair = @{delete $pairs{$proto,$src,$dst,$sport,$dport}};
-  print join($delimiter,@pair), "\n";
+  $src = inet_ntoa $src;
+  $dst = inet_ntoa $dst;
+  my $key = join(",",$proto,$src,$dst,$sport,$dport);
+  push @{$pairs{$key}}, $id++;
+  next unless @{$pairs{$key}} >= 2;
+  my @pair = @{delete $pairs{$key}};
+  print join($delimiter,@pair,split(/,/,$key)), "\n";
 }
-print "@{$_}\n" for values %pairs;
+for my $key (keys %pairs) {
+  my @pair = @{$pairs{$key}};
+  push @pair, '';
+  print join($delimiter,@pair,split(/,/,$key)), "\n";
+}
