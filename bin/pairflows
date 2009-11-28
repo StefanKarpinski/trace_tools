@@ -31,7 +31,7 @@ while (<>) {
   my @pair = @{delete $pairs{$key}};
   print join($delimiter,@pair,split(/,/,$key)), "\n";
 }
-for my $key (keys %pairs) {
+for my $key (sort keys %pairs) {
   my @pair = @{$pairs{$key}};
   push @pair, '';
   print join($delimiter,@pair,split(/,/,$key)), "\n";

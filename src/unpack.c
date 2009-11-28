@@ -298,7 +298,7 @@ int main(int argc, char ** argv) {
           );
           // verify that packets are sorted by flow
           for (i = 0; i < 1000 & i < n-2; i++)
-            if (packets[i].flow > packets[i+1].flow)
+            if (ntohl(packets[i].flow) > ntohl(packets[i+1].flow))
               die("Packet file must be sorted by flow when using -L.\n");
 
           u_int32_t max_flow = ntohl(packets[n-1].flow);
