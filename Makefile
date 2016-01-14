@@ -1,4 +1,4 @@
-USR = /opt/local
+USR = /usr/local/Cellar/glib/2.46.2
 PROGS = \
 	bin/enumerate \
 	bin/histogram \
