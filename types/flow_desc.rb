@@ -115,7 +115,7 @@ u_int32_t port_rank(u_int16_t port) {
 __CODE__
 
 
-rank = nil
+last_rank = nil
 common_ports.each_with_index do |port,rank|
   desc = port_desc[port]
   if desc.is_a?(Hash)
@@ -124,11 +124,12 @@ common_ports.each_with_index do |port,rank|
   print <<-__CODE__
     case #{'%5u' % port}: return #{'%2u' % rank}; // #{desc}
   __CODE__
+  last_rank = rank
 end
 
 print <<-__CODE__
   }
-  return #{rank+1} + port;
+  return #{last_rank+1} + port;
 }
 
 char *pair_desc(u_int8_t proto, u_int16_t src_port, u_int16_t dst_port) {
