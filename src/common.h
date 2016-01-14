@@ -16,7 +16,8 @@
 #include "udp.h"
 #include "tcp.h"
 
-#define ETHERTYPE_IP   0x0008
+#define ETHERTYPE_IP    0x0008
+#define ETHERTYPE_8021Q 0x0081
 
 #define IP_PROTO_ICMP  1
 #define IP_PROTO_TCP   6

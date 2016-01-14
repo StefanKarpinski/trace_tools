@@ -246,8 +246,12 @@ int main(int argc, char ** argv) {
           }
           case DLT_EN10MB: {
             struct ether_header *eth = (struct ether_header *) pkt;
+            if (eth->ether_type == ETHERTYPE_8021Q) // VLAN frame
+              eth = (struct ether_header *) (pkt + 4);
+            if (eth->ether_type == ETHERTYPE_8021Q) // VLAN double tagging
+              eth = (struct ether_header *) (pkt + 8);
             if (eth->ether_type != ETHERTYPE_IP) continue;
-            ip = (struct ip *) (pkt + sizeof(*eth));
+            ip = (struct ip *) (eth + sizeof(*eth));
             break;
           }
           // NOTE: to support a new datalink type, just add a case
